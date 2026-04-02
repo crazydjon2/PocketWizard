@@ -21,7 +21,8 @@
       "@scene/*": ["src/pixi/*"],
       "@store/*": ["src/store/*"],
       "@ui/*": ["src/ui/*"],
-      "@tg/*": ["src/tg/*"]
+      "@tg/*": ["src/tg/*"],
+      "@hooks/*": ["src/hooks/*"]
     }
   },
   "include": ["src"],

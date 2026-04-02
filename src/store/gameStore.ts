@@ -1,6 +1,7 @@
 import { create } from 'zustand'
 import { immer } from 'zustand/middleware/immer'
-import type { GameState, GameScreen, Player, MapNode, GameEvent, Enemy, CombatState } from '@game/types'
+import type { GameState, GameScreen, Player, MapNode, GameEvent, Enemy, CombatState, DamageType } from '@game/types'
+import { ZERO_ELEMENTS } from '@game/types'
 import { generateMap } from '@game/map/MapGenerator'
 import { startCombat, tickCombat, playerAttack } from '@game/engine/CombatEngine'
 
@@ -13,6 +14,7 @@ const DEFAULT_PLAYER: Player = {
     attack: 15,
     defense: 5,
     speed: 10,
+    elements: { ...ZERO_ELEMENTS },
   },
   items: [],
   gold: 0,
@@ -33,6 +35,9 @@ interface GameActions {
   playerAttackAction: () => void
   tickAutoCombat: () => void
   endCombat: () => void
+
+  // Прокачка стихий
+  upgradeElement: (type: DamageType, amount?: number) => void
 }
 
 type GameStore = GameState & GameActions
@@ -135,6 +140,10 @@ export const useGameStore = create<GameStore>()(
         if (!state.combat) return
         state.combat = tickCombat(state.combat)
       })
+    },
+
+    upgradeElement: (type, amount = 1) => {
+      set(state => { state.player.stats.elements[type] += amount })
     },
 
     endCombat: () => {

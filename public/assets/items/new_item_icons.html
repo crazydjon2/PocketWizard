@@ -1,0 +1,222 @@
+
+<style>
+*{box-sizing:border-box}
+.page{padding:16px 0 24px;font-family:var(--font-sans)}
+.sec{font-size:12px;font-weight:500;color:var(--color-text-secondary);text-align:center;margin-bottom:6px;letter-spacing:.05em}
+.hint{font-size:12px;color:var(--color-text-tertiary);text-align:center;margin-bottom:16px}
+.grid{display:flex;gap:16px;flex-wrap:wrap;justify-content:center}
+.card{display:flex;flex-direction:column;align-items:center;gap:6px;padding:12px 10px 10px;border:1px solid var(--color-border-secondary);border-radius:10px;background:var(--color-background-secondary);width:108px}
+.card.rare{border-color:#2563eb}
+.card.epic{border-color:#9333ea}
+canvas{image-rendering:pixelated;image-rendering:crisp-edges;display:block;border-radius:3px}
+.iname{font-size:10px;font-weight:500;color:var(--color-text-primary);text-align:center;line-height:1.3;min-height:28px;display:flex;align-items:center;justify-content:center}
+.idesc{font-size:9px;color:var(--color-text-tertiary);text-align:center;line-height:1.3;min-height:28px}
+.iid{font-size:8px;font-family:var(--font-mono);color:var(--color-text-tertiary);text-align:center}
+.dl{width:100%;padding:3px 0;border-radius:5px;border:1px solid var(--color-border-secondary);background:transparent;cursor:pointer;font-size:10px;color:var(--color-text-secondary);margin-top:2px}
+.dl:hover{background:var(--color-background-tertiary)}
+.top-bar{display:flex;gap:8px;justify-content:center;margin-bottom:18px}
+.tbtn{padding:6px 16px;border-radius:8px;border:1px solid var(--color-border-primary);background:var(--color-text-primary);color:var(--color-background-primary);font-size:12px;cursor:pointer}
+.tbtn:hover{opacity:.85}
+</style>
+<div class="page">
+<div class="sec">Новые иконки — 5 предметов</div>
+<div class="hint">Новинки из обновлённого items.ts</div>
+<div class="top-bar">
+  <button class="tbtn" onclick="dlAll()">⬇ Скачать все ZIP</button>
+</div>
+<div class="grid" id="grid"></div>
+</div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script>
+function draw(px, pal, sc) {
+  const H=px.length, W=px[0].length;
+  const c=document.createElement('canvas');
+  c.width=W*sc; c.height=H*sc;
+  const ctx=c.getContext('2d'); ctx.imageSmoothingEnabled=false;
+  for(let y=0;y<H;y++) for(let x=0;x<W;x++){
+    const ci=px[y][x]; if(!ci) continue;
+    ctx.fillStyle=pal[ci];
+    ctx.fillRect(x*sc,y*sc,sc,sc);
+  }
+  return c;
+}
+const SC=4;
+
+const ITEMS=[
+  {
+    id:'cursed_eye', name:'Проклятый глаз', rarity:'rare',
+    desc:'+4 урона, враг точнее на 15%',
+    pal:{
+      1:'#0a0010', 2:'#180028', 3:'#300050', 4:'#500080', 5:'#7800b0',
+      6:'#a800e0', 7:'#cc40f0', 8:'#e880ff', 9:'#f8c0ff',
+      10:'#200008', 11:'#500018', 12:'#900030', 13:'#d00048',
+      14:'#ff2060', 15:'#ff60a0', 16:'#ffa0c8',
+      17:'#0a0a0a', 18:'#1a1a1a', 19:'#2a2a2a', 20:'#f0f0f0'
+    },
+    px:[
+      [ 0, 0, 0, 1, 2, 3, 3, 2, 1, 0, 0, 0],
+      [ 0, 0, 2, 4, 5, 6, 6, 5, 4, 2, 0, 0],
+      [ 0, 1, 4, 6, 7, 8, 8, 7, 6, 4, 1, 0],
+      [ 0, 2, 5, 7, 9, 9, 9, 9, 7, 5, 2, 0],
+      [ 1, 4, 6, 8, 9,12,13,12, 9, 8, 6, 4],
+      [ 2, 5, 7, 9,11,14,15,14,11, 9, 7, 5],
+      [ 2, 5, 7, 9,11,14,16,14,11, 9, 7, 5],
+      [ 1, 4, 6, 8, 9,12,13,12, 9, 8, 6, 4],
+      [ 0, 2, 5, 7, 8,17,18,17, 8, 7, 5, 2],
+      [ 0, 1, 4, 6, 7,18,19,18, 7, 6, 4, 1],
+      [ 0, 0, 2, 5, 6, 7,20, 7, 6, 5, 2, 0],
+      [ 0, 0, 0, 2, 4, 6, 7, 6, 4, 2, 0, 0],
+    ]
+  },
+  {
+    id:'adrenaline', name:'Адреналин', rarity:'rare',
+    desc:'×2 урона при HP≤30%, −10 макс HP',
+    pal:{
+      1:'#080018', 2:'#100830', 3:'#200848', 4:'#380c60', 5:'#500878',
+      6:'#700898', 7:'#9010b8', 8:'#b820d0', 9:'#d840e8',
+      10:'#100000', 11:'#300000', 12:'#580000', 13:'#900000',
+      14:'#cc1010', 15:'#ee3030', 16:'#ff6060', 17:'#ffa0a0',
+      18:'#f0f0f0', 19:'#c0c0c0', 20:'#808080'
+    },
+    px:[
+      [ 0, 0, 0, 3, 4, 5, 5, 4, 3, 0, 0, 0],
+      [ 0, 0, 4, 6, 7, 8, 8, 7, 6, 4, 0, 0],
+      [ 0, 3, 6, 8, 9, 9, 9, 9, 8, 6, 3, 0],
+      [ 0, 4, 7, 9,18,18,18,18, 9, 7, 4, 0],
+      [ 3, 6, 8,18,19,19,19,19,18, 8, 6, 3],
+      [ 4, 7, 9,18,13,14,14,13,18, 9, 7, 4],
+      [ 4, 7, 9,18,14,15,16,15,18, 9, 7, 4],
+      [ 4, 7, 9,18,13,15,17,15,18, 9, 7, 4],
+      [ 3, 6, 8,18,19,13,14,13,18, 8, 6, 3],
+      [ 0, 4, 7, 9,18,18,18,18, 9, 7, 4, 0],
+      [ 0, 3, 5, 7, 8, 9, 9, 8, 7, 5, 3, 0],
+      [ 0, 0, 3, 4, 5, 6, 6, 5, 4, 3, 0, 0],
+    ]
+  },
+  {
+    id:'berserker_band', name:'Обруч берсерка', rarity:'rare',
+    desc:'×1.5 урона при HP≤50%',
+    pal:{
+      1:'#100000', 2:'#280000', 3:'#480000', 4:'#700000', 5:'#a00000',
+      6:'#cc1000', 7:'#ee3000', 8:'#ff6020', 9:'#ff9040', 10:'#ffcc70',
+      11:'#201008', 12:'#402010', 13:'#603018', 14:'#804828', 15:'#a06038',
+      16:'#c08050', 17:'#e0a870', 18:'#f8c890',
+      19:'#1a1a1a', 20:'#c0c0c0'
+    },
+    px:[
+      [ 0, 0, 0,11,12,13,13,12,11, 0, 0, 0],
+      [ 0, 0,12,14,15,16,16,15,14,12, 0, 0],
+      [ 0,11,14,16,17,18,18,17,16,14,11, 0],
+      [ 0,12,15,17, 3, 4, 4, 3,17,15,12, 0],
+      [11,14,16, 3, 5, 7, 7, 5, 3,16,14,11],
+      [12,15,17, 4, 7, 9,10, 9, 7,17,15,12],
+      [12,15,17, 4, 7, 9,10, 9, 7,17,15,12],
+      [11,14,16, 3, 5, 7, 7, 5, 3,16,14,11],
+      [ 0,12,15,17, 3, 4, 4, 3,17,15,12, 0],
+      [ 0,11,14,16,17,18,18,17,16,14,11, 0],
+      [ 0, 0,12,14,15,16,16,15,14,12, 0, 0],
+      [ 0, 0, 0,11,12,13,13,12,11, 0, 0, 0],
+    ]
+  },
+  {
+    id:'blood_blade', name:'Кровавый клинок', rarity:'epic',
+    desc:'+6 урона, −2 HP за удар',
+    pal:{
+      1:'#0a0000', 2:'#180000', 3:'#300000', 4:'#500808', 5:'#781010',
+      6:'#a01818', 7:'#cc2020', 8:'#ee3828', 9:'#ff5840', 10:'#ff8870',
+      11:'#181010', 12:'#302020', 13:'#504040', 14:'#706060', 15:'#908080',
+      16:'#b8a8a8', 17:'#d8c8c8', 18:'#f0e8e8',
+      19:'#c09020', 20:'#f0c030', 21:'#fff060'
+    },
+    px:[
+      [ 0, 0, 0, 0, 0, 0, 3, 4, 5, 6, 0, 0],
+      [ 0, 0, 0, 0, 0, 3, 5, 7, 8, 9, 6, 0],
+      [ 0, 0, 0, 0, 3, 5, 7, 9,10, 9, 7, 4],
+      [ 0, 0, 0, 3,13,15,17,18,17,15, 9, 6],
+      [ 0, 0, 3,13,15,17,18,18,17,16, 8, 5],
+      [ 0, 3,12,15,17,18,18,17,16,14, 7, 4],
+      [ 3,12,14,16,18,18,17,16,14,12, 6, 3],
+      [19,13,15,17,18,17,16,14,12,11, 5, 2],
+      [20,21,14,16,17,16,15,13,11, 4, 3, 1],
+      [19,20,21,15,16,15,13,11, 4, 3, 2, 0],
+      [ 0,19,20,14,15,13,11, 4, 3, 2, 0, 0],
+      [ 0, 0,19,20,13,11, 4, 3, 2, 0, 0, 0],
+    ]
+  },
+  {
+    id:'death_wish', name:'Желание смерти', rarity:'epic',
+    desc:'×3 урона при HP≤20%, враг точнее на 25%',
+    pal:{
+      1:'#050008', 2:'#0c0014', 3:'#180022', 4:'#280038', 5:'#3c0050',
+      6:'#540068', 7:'#700080', 8:'#900098', 9:'#b000b0', 10:'#cc00c0',
+      11:'#100000', 12:'#200000', 13:'#380000', 14:'#580000', 15:'#800000',
+      16:'#aa0000', 17:'#cc1010', 18:'#ee2828', 19:'#ff5050', 20:'#ff9090',
+      21:'#f8f0f0', 22:'#d0c8c8', 23:'#a8a0a0'
+    },
+    px:[
+      [ 0, 0, 0, 2, 3, 4, 4, 3, 2, 0, 0, 0],
+      [ 0, 0, 3, 5, 6, 7, 7, 6, 5, 3, 0, 0],
+      [ 0, 2, 5, 7, 8, 9, 9, 8, 7, 5, 2, 0],
+      [ 2, 4, 7, 9,10,11,12,10, 9, 7, 4, 2],
+      [ 3, 6, 8,10,15,17,17,15,10, 8, 6, 3],
+      [ 4, 7, 9,12,17,19,20,19,15,12, 9, 7],
+      [ 4, 7, 9,12,17,20,21,20,17,12, 9, 7],
+      [ 3, 6, 8,10,15,19,20,19,15,10, 8, 6],
+      [ 2, 4, 7, 9,12,15,17,15,12, 9, 7, 4],
+      [ 0, 2, 5, 7, 9,10,12,10, 9, 7, 5, 2],
+      [ 0, 0, 3, 5, 7, 8, 9, 8, 7, 5, 3, 0],
+      [ 0, 0, 0, 3, 5, 7, 7, 5, 3, 0, 0, 0],
+    ]
+  },
+];
+
+const RARITY_LABEL={rare:'Rare',epic:'Epic'};
+
+function getCanvas(item){ return draw(item.px,item.pal,SC); }
+
+function dlOne(item){
+  const c=getCanvas(item);
+  const a=document.createElement('a');
+  a.download=item.id+'.png';
+  a.href=c.toDataURL('image/png');
+  a.click();
+}
+
+async function dlAll(){
+  const zip=new JSZip();
+  for(const item of ITEMS){
+    const c=getCanvas(item);
+    const base64=c.toDataURL('image/png').split(',')[1];
+    zip.file(item.id+'.png',base64,{base64:true});
+  }
+  const blob=await zip.generateAsync({type:'blob'});
+  const a=document.createElement('a');
+  a.download='new_item_icons.zip';
+  a.href=URL.createObjectURL(blob);
+  a.click();
+}
+
+const grid=document.getElementById('grid');
+ITEMS.forEach(item=>{
+  const card=document.createElement('div');
+  card.className='card '+item.rarity;
+
+  card.appendChild(getCanvas(item));
+
+  const nm=document.createElement('div');nm.className='iname';
+  nm.textContent=item.name;card.appendChild(nm);
+
+  const desc=document.createElement('div');desc.className='idesc';
+  desc.textContent=item.desc;card.appendChild(desc);
+
+  const id=document.createElement('div');id.className='iid';
+  id.textContent=item.id;card.appendChild(id);
+
+  const btn=document.createElement('button');btn.className='dl';
+  btn.textContent='⬇ '+item.id+'.png';
+  btn.onclick=()=>dlOne(item);
+  card.appendChild(btn);
+
+  grid.appendChild(card);
+});
+</script>

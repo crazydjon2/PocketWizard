@@ -11,6 +11,7 @@ export default defineConfig({
       '@store': resolve(__dirname, 'src/store'),
       '@ui': resolve(__dirname, 'src/ui'),
       '@tg': resolve(__dirname, 'src/tg'),
+      '@hooks': resolve(__dirname, 'src/hooks'),
     },
   },
 })

@@ -1,3 +1,29 @@
+// ─── Elements ─────────────────────────────────────────────────────────────────
+
+export type DamageType = 'fire' | 'water' | 'physical' | 'dark' | 'lightning' | 'earth'
+
+export interface ElementalStats {
+  fire:      number   // огонь
+  water:     number   // вода
+  physical:  number   // физика
+  dark:      number   // тьма
+  lightning: number   // молния
+  earth:     number   // земля
+}
+
+export const ELEMENT_META: Record<DamageType, { label: string; icon: string; color: string }> = {
+  fire:      { label: 'Огонь',   icon: '🔥', color: '#f97316' },
+  water:     { label: 'Вода',    icon: '💧', color: '#38bdf8' },
+  physical:  { label: 'Физика',  icon: '⚔️', color: '#a3a3a3' },
+  dark:      { label: 'Тьма',    icon: '🌑', color: '#a855f7' },
+  lightning: { label: 'Молния',  icon: '⚡', color: '#facc15' },
+  earth:     { label: 'Земля',   icon: '🪨', color: '#a16207' },
+}
+
+export const ZERO_ELEMENTS: ElementalStats = {
+  fire: 0, water: 0, physical: 0, dark: 0, lightning: 0, earth: 0,
+}
+
 // ─── Player ───────────────────────────────────────────────────────────────────
 
 export interface PlayerStats {
@@ -6,6 +32,7 @@ export interface PlayerStats {
   attack: number
   defense: number
   speed: number
+  elements: ElementalStats  // бонусный урон по типу
 }
 
 export interface Player {
@@ -91,6 +118,8 @@ export interface Enemy {
   defense: number
   reward: { gold: number; items: Item[] }
   sprite: string
+  weakTo:   DamageType | null   // уязвимость: +150% бонуса этого элемента
+  resistTo: DamageType | null   // сопротивление: −50% бонуса этого элемента
 }
 
 export interface CombatState {

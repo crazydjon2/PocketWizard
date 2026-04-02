@@ -13,6 +13,8 @@ const DUMMY_ENEMY: Enemy = {
   defense: 2,
   reward: { gold: 15, items: [] },
   sprite: '/assets/enemies/goblin.png',
+  weakTo: 'fire',
+  resistTo: 'earth',
 }
 
 export function CombatScreen() {
