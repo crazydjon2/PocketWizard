@@ -97,9 +97,9 @@ export function CombatOverlay({
           }}
         >
           <img
-            src="/assets/character/Characters_2_80x146.png"
+            src="/assets/character/character.png"
             draggable={false}
-            style={{ imageRendering: 'pixelated', width: 120, height: 240, display: 'block' }}
+            style={{ imageRendering: 'pixelated', width: 240, height: 240, display: 'block' }}
           />
         </div>
       </div>
