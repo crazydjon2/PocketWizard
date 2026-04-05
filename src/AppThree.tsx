@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState, useCallback } from 'react'
 import * as THREE from 'three'
 import { ALL_SPELLS } from '@game/data/spells'
-import { pickEnemy, STARTING_ENEMY } from '@game/data/enemies'
+import { pickEnemy } from '@game/data/enemies'
+import { FOREST_BIOME } from '@game/biomes/forest'
 import { ALL_EVENTS } from '@game/data/events'
 import type { Spell } from '@game/data/spells'
 import type { GameItem, ItemEffect } from '@game/data/items'
@@ -64,6 +65,7 @@ export function App() {
   const enemyBaseScaleRef= useRef<[number, number]>([1.9, 3.0])
   const enemyHitRef      = useRef(false)
   const enemyAttackRef   = useRef(false)
+  const enemyFramesRef   = useRef<1 | 4>(FOREST_BIOME.enemies[0].frames)
 
   // ── DOM refs ───────────────────────────────────────────────────
   const charInnerRef      = useRef<HTMLDivElement>(null)
@@ -76,7 +78,8 @@ export function App() {
   const dragOriginRef     = useRef({ x: 0, y: 0 })
 
   // ── Stable read refs ──────────────────────────────────────────
-  const currentEnemyRef   = useRef<EnemyDef>(STARTING_ENEMY)
+  const startEnemy        = FOREST_BIOME.enemies[0]
+  const currentEnemyRef   = useRef<EnemyDef>(startEnemy)
   const fightCountRef     = useRef(0)
   const effectiveMaxHpRef = useRef(MAX_HP)
 
@@ -86,9 +89,8 @@ export function App() {
     Math.random() < 0.5 ? 'left' : 'right'
   )
   const [playerHp,     setPlayerHp]     = useState(MAX_HP)
-  const [combatSeed]                    = useState(() => ({ enemy: STARTING_ENEMY, hp: STARTING_ENEMY.hp }))
-  const [currentEnemy, setCurrentEnemy] = useState<EnemyDef>(combatSeed.enemy)
-  const [enemyHp,      setEnemyHp]      = useState(combatSeed.hp)
+  const [currentEnemy, setCurrentEnemy] = useState<EnemyDef>(startEnemy)
+  const [enemyHp,      setEnemyHp]      = useState(startEnemy.hp)
   const [fightCount,   setFightCount]   = useState(0)
   const [stepCount,    setStepCount]    = useState(0)
   const [telegraph,    setTelegraph]    = useState(true)
@@ -137,10 +139,16 @@ export function App() {
     const loader = new THREE.TextureLoader()
     const t = loader.load(currentEnemy.sprite)
     t.colorSpace = THREE.SRGBColorSpace
-    t.repeat.set(0.5, 0.5)
-    t.offset.set(...ENEMY_SPRITE_UV[0])
+    if (currentEnemy.frames === 4) {
+      t.repeat.set(0.5, 0.5)
+      t.offset.set(...ENEMY_SPRITE_UV[0])
+    } else {
+      t.repeat.set(1, 1)
+      t.offset.set(0, 0)
+    }
     mat.map = t
     mat.needsUpdate = true
+    enemyFramesRef.current = currentEnemy.frames
     const [fw, fh] = currentEnemy.framePx
     const h = 3.0; const w = h * fw / fh
     enemyBaseScaleRef.current = [w, h]
@@ -152,7 +160,7 @@ export function App() {
     mountRef, speedRef, movingRef, grassLeanYRef, grassSnapRef,
     stepCountRef, roadTexsRef,
     enemyMaterialRef, enemyMeshRef, enemyBaseScaleRef,
-    enemyHitRef, enemyAttackRef,
+    enemyHitRef, enemyAttackRef, enemyFramesRef,
   })
 
   const { showFloat, triggerCharAnim, triggerScreenFlash } = useCombatEffects({
@@ -388,7 +396,7 @@ export function App() {
         if (path === 'combat') {
           const nextCount = fightCountRef.current + 1
           setFightCount(nextCount)
-          const nextEnemy = pickEnemy(nextCount)
+          const nextEnemy = pickEnemy(nextCount, FOREST_BIOME.enemies)
           setCurrentEnemy(nextEnemy)
           currentEnemyRef.current = nextEnemy
           setEnemyHp(nextEnemy.hp)
