@@ -1,6 +1,37 @@
 import type { Spell } from '@game/data/spells'
 import type { GameItem, ItemEffect } from '@game/data/items'
 
+/** Урон одной сыгранной карты с учётом предметов */
+export function calcCardDamage(
+  card: Spell,
+  ownedItems: GameItem[],
+  playerHp: number,
+  effectiveMaxHp: number,
+): number {
+  // Базовый удар (punch) НЕ получает бонусы от предметов
+  if (card.infinite) return Math.max(1, card.baseDamage)
+
+  const allEffects = ownedItems.flatMap(i => i.effects)
+
+  const flat = allEffects
+    .filter(e => e.type === 'flatAttack')
+    .reduce((s, e) => s + (e as Extract<ItemEffect, { type: 'flatAttack' }>).amount, 0)
+
+  const elemBonus = allEffects
+    .filter(e => e.type === 'flatAttackElement' &&
+      (e as Extract<ItemEffect, { type: 'flatAttackElement' }>).element === card.element)
+    .reduce((s, e) => s + (e as Extract<ItemEffect, { type: 'flatAttackElement' }>).amount, 0)
+
+  let dmg = card.baseDamage + flat + elemBonus
+
+  for (const eff of allEffects.filter(e => e.type === 'lowHpMultiplier')) {
+    const e = eff as Extract<ItemEffect, { type: 'lowHpMultiplier' }>
+    if (playerHp / effectiveMaxHp <= e.threshold) dmg *= e.multiplier
+  }
+
+  return Math.max(1, Math.round(dmg))
+}
+
 /** Суммарный урон всех заклинаний с учётом всех предметов и HP-порогов */
 export function calcPlayerDamage(
   equippedSpells: Spell[],

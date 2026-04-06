@@ -1,20 +1,21 @@
 import { useEffect, useRef, useState, useCallback } from 'react'
 import * as THREE from 'three'
-import { ALL_SPELLS } from '@game/data/spells'
+import { ALL_SPELLS, toHandSpell } from '@game/data/spells'
 import { pickEnemy } from '@game/data/enemies'
 import { FOREST_BIOME } from '@game/biomes/forest'
 import { ALL_EVENTS } from '@game/data/events'
-import type { Spell } from '@game/data/spells'
+import type { Spell, HandSpell } from '@game/data/spells'
 import type { GameItem, ItemEffect } from '@game/data/items'
 import type { EnemyDef } from '@game/data/enemies'
 import type { GameEvent, EventChoice } from '@game/data/events'
-import type { Zone, Phase, PathType, AppPhase, ChestOption } from './types'
-import { MAX_HP, HEAL_AMOUNT, TELEGRAPH_MS, REROLL_BASE, ENEMY_SPRITE_UV, PX } from './constants'
-import { calcPlayerDamage, calcIncomingDamage } from '@game/logic/combatCalc'
+import type { Phase, PathType, AppPhase, ChestOption } from './types'
+import { MAX_HP, HEAL_AMOUNT, REROLL_BASE, ENEMY_SPRITE_UV, ENEMY_BASE_HEIGHT, PX, ELEM_DISPLAY } from './constants'
+import { calcCardDamage, calcIncomingDamage } from '@game/logic/combatCalc'
 import { buildRewardPool, pickWeighted } from '@game/logic/rewardPool'
 import { useThreeScene } from '@hooks/useThreeScene'
 import { useCombatEffects } from '@hooks/useCombatEffects'
 import { GameHUD } from '@ui/components/GameHUD'
+import { CardHand } from '@ui/components/CardHand'
 import { StatsPanel } from '@ui/components/StatsPanel'
 import { CombatOverlay } from '@ui/components/CombatOverlay'
 import { SpellSelectScreen } from '@ui/screens/SpellSelectScreen'
@@ -34,14 +35,6 @@ function tween(setter: (v: number) => void, from: number, to: number, ms: number
     }
     requestAnimationFrame(tick)
   })
-}
-
-function getZone(dx: number, dy: number, dist: number): Zone {
-  if (dist < 30) return null
-  const a = Math.atan2(dy, dx)
-  if (Math.abs(a) < Math.PI * 0.35)  return 'right'
-  if (Math.abs(a) > Math.PI * 0.65)  return 'left'
-  return null
 }
 
 function randomPathChoices(): PathType[] {
@@ -71,11 +64,6 @@ export function App() {
   const charInnerRef      = useRef<HTMLDivElement>(null)
   const screenFlashRef    = useRef<HTMLDivElement>(null)
   const floatContainerRef = useRef<HTMLDivElement>(null)
-  const charElRef         = useRef<HTMLDivElement>(null)
-  const leftZoneRef       = useRef<HTMLDivElement>(null)
-  const rightZoneRef      = useRef<HTMLDivElement>(null)
-  const hoverZoneRef      = useRef<Zone>(null)
-  const dragOriginRef     = useRef({ x: 0, y: 0 })
 
   // ── Stable read refs ──────────────────────────────────────────
   const startEnemy        = FOREST_BIOME.enemies[0]
@@ -84,27 +72,21 @@ export function App() {
   const effectiveMaxHpRef = useRef(MAX_HP)
 
   // ── Combat state ──────────────────────────────────────────────
-  const [phase,      setPhase]      = useState<Phase>('choose')
-  const [correctDir, setCorrectDir] = useState<'left' | 'right'>(() =>
-    Math.random() < 0.5 ? 'left' : 'right'
-  )
+  const [phase,        setPhase]        = useState<Phase>('choose')
   const [playerHp,     setPlayerHp]     = useState(MAX_HP)
   const [currentEnemy, setCurrentEnemy] = useState<EnemyDef>(startEnemy)
   const [enemyHp,      setEnemyHp]      = useState(startEnemy.hp)
   const [fightCount,   setFightCount]   = useState(0)
   const [stepCount,    setStepCount]    = useState(0)
-  const [telegraph,    setTelegraph]    = useState(true)
   const [pathChoices,  setPathChoices]  = useState<PathType[]>([])
   const [showStats,    setShowStats]    = useState(false)
-  const [dragging,     setDragging]     = useState(false)
 
   // ── Spell / item / progression state ──────────────────────────
   const [appPhase,       setAppPhase]       = useState<AppPhase>('spellSelect')
   const [startOptions]                      = useState<Spell[]>(() =>
-    [...ALL_SPELLS].sort(() => Math.random() - 0.5).slice(0, 3)
+    [...ALL_SPELLS].sort(() => Math.random() - 0.5).slice(0, 6)
   )
-  const [equippedSpells, setEquippedSpells] = useState<Spell[]>([])
-  const [spellSlots,     setSpellSlots]     = useState(2)
+  const [hand,           setHand]           = useState<HandSpell[]>([])
   const [ownedItems,     setOwnedItems]     = useState<GameItem[]>([])
   const [gold,           setGold]           = useState(0)
   const [hitStreak,      setHitStreak]      = useState(0)
@@ -124,14 +106,6 @@ export function App() {
   fightCountRef.current     = fightCount
   stepCountRef.current      = stepCount
 
-  // ── Telegraph effect ──────────────────────────────────────────
-  useEffect(() => {
-    if (phase !== 'choose') return
-    setTelegraph(true)
-    const t = setTimeout(() => setTelegraph(false), TELEGRAPH_MS)
-    return () => clearTimeout(t)
-  }, [phase, correctDir])
-
   // ── Enemy texture swap ────────────────────────────────────────
   useEffect(() => {
     const mat = enemyMaterialRef.current
@@ -150,9 +124,12 @@ export function App() {
     mat.needsUpdate = true
     enemyFramesRef.current = currentEnemy.frames
     const [fw, fh] = currentEnemy.framePx
-    const h = 3.0; const w = h * fw / fh
+    const h = ENEMY_BASE_HEIGHT; const w = h * fw / fh
     enemyBaseScaleRef.current = [w, h]
-    if (enemyMeshRef.current) enemyMeshRef.current.scale.set(w, h, 1)
+    if (enemyMeshRef.current) {
+      enemyMeshRef.current.scale.set(w, h, 1)
+      enemyMeshRef.current.position.y = h / 2   // ноги на земле
+    }
   }, [currentEnemy])
 
   // ── Hooks ─────────────────────────────────────────────────────
@@ -167,48 +144,27 @@ export function App() {
     floatContainerRef, charInnerRef, screenFlashRef,
   })
 
-  // ── DOM zone helpers ──────────────────────────────────────────
-  const applyZoneDOM = (zone: Zone) => {
-    for (const [ref, id] of [[leftZoneRef, 'left'], [rightZoneRef, 'right']] as const) {
-      if (!ref.current) continue
-      const active = zone === id
-      ref.current.style.opacity     = '1'
-      ref.current.style.background  = active ? 'rgba(240,68,68,0.18)' : 'rgba(240,68,68,0.04)'
-      ref.current.style.borderColor = active ? '#f04545' : 'rgba(240,68,68,0.3)'
-      ref.current.style.boxShadow   = active
-        ? '0 0 16px rgba(240,68,68,0.4), inset 0 0 16px rgba(240,68,68,0.08)'
-        : 'none'
-      const arrow = ref.current.querySelector('span') as HTMLElement | null
-      if (arrow) arrow.style.color = active ? '#f04545' : 'rgba(240,68,68,0.5)'
-    }
-  }
-  const hideZonesDOM = () => {
-    leftZoneRef.current  && (leftZoneRef.current.style.opacity  = '0')
-    rightZoneRef.current && (rightZoneRef.current.style.opacity = '0')
-  }
-
   // ── Reward pool helpers ───────────────────────────────────────
   const openChest = useCallback(() => {
     const extraChoices = ownedItems.filter(i => i.effects.some(e => e.type === 'moreChoices')).length
-    const pool = buildRewardPool(equippedSpells, spellSlots)
+    const pool = buildRewardPool(hand)
     setChestChoices(pickWeighted(pool, 3 + extraChoices))
     setPhase('chest')
-  }, [ownedItems, equippedSpells, spellSlots])
+  }, [ownedItems, hand])
 
   const handleChestChoice = useCallback((choice: ChestOption) => {
     if (choice.kind === 'spell') {
-      setEquippedSpells(prev => [...prev, choice.data])
+      setHand(prev => [...prev, toHandSpell(choice.data as Spell)])
     } else {
-      setOwnedItems(prev => [...prev, choice.data])
-      if ((choice.data as GameItem).effects.some(e => e.type === 'spellSlot')) setSpellSlots(s => s + 1)
+      setOwnedItems(prev => [...prev, choice.data as GameItem])
     }
     setPathChoices(randomPathChoices())
     setPhase('path')
   }, [])
 
   const buildShopPool = useCallback(() =>
-    pickWeighted(buildRewardPool(equippedSpells, spellSlots), 4),
-  [equippedSpells, spellSlots])
+    pickWeighted(buildRewardPool(hand), 4),
+  [hand])
 
   const openShop = useCallback(() => {
     setShopItems(buildShopPool())
@@ -228,11 +184,9 @@ export function App() {
       : { common: 12, rare: 28, epic: 55 }[(choice.data as GameItem).rarity]
     setGold(g => g - price)
     if (choice.kind === 'spell') {
-      setEquippedSpells(prev => [...prev, choice.data as Spell])
+      setHand(prev => [...prev, toHandSpell(choice.data as Spell)])
     } else {
-      const item = choice.data as GameItem
-      setOwnedItems(prev => [...prev, item])
-      if (item.effects.some(e => e.type === 'spellSlot')) setSpellSlots(s => s + 1)
+      setOwnedItems(prev => [...prev, choice.data as GameItem])
     }
     setShopItems(prev => prev.filter(c => c.data.id !== choice.data.id))
     showFloat('🛒 Куплено!', '#fbbf24')
@@ -263,101 +217,60 @@ export function App() {
     setCurrentEvent(null)
   }, [])
 
-  // ── Drag handlers ─────────────────────────────────────────────
-  const handlePointerDown = useCallback((e: React.PointerEvent) => {
+  // ── Card play ─────────────────────────────────────────────────
+  const handlePlayCard = useCallback((card: HandSpell) => {
     if (phase !== 'choose' || appPhase !== 'playing') return
-    e.currentTarget.setPointerCapture(e.pointerId)
-    dragOriginRef.current = { x: e.clientX, y: e.clientY }
-    hoverZoneRef.current  = null
-    if (charElRef.current) {
-      charElRef.current.style.left      = `${e.clientX}px`
-      charElRef.current.style.top       = `${e.clientY}px`
-      charElRef.current.style.bottom    = 'auto'
-      charElRef.current.style.transform = 'translate(-50%, -50%)'
+
+    // Decrement charges; remove card when depleted
+    if (!card.infinite) {
+      setHand(prev => prev
+        .map(h => h.instanceId === card.instanceId ? { ...h, charges: h.charges - 1 } : h)
+        .filter(h => h.charges > 0)
+      )
     }
-    applyZoneDOM(null)
-    setDragging(true)
-  }, [phase, appPhase])
 
-  const handlePointerMove = useCallback((e: React.PointerEvent) => {
-    if (!dragging) return
-    const { clientX: x, clientY: y } = e
-    if (charElRef.current) {
-      charElRef.current.style.left = `${x}px`
-      charElRef.current.style.top  = `${y}px`
+    const dmg        = calcCardDamage(card, ownedItems, playerHp, effectiveMaxHpRef.current)
+    const newEnemyHp = Math.max(0, enemyHp - dmg)
+
+    setEnemyHp(newEnemyHp)
+    showFloat(`⚔️ −${dmg}`, '#fbbf24')
+    triggerCharAnim('charAttack', 480)
+    enemyHitRef.current = true
+
+    const newStreak = hitStreak + 1
+    setHitStreak(newStreak)
+    const healItemBase = ownedItems.find(i => i.effects.some(e => e.type === 'healStreak'))
+    const healEffect   = healItemBase
+      ? healItemBase.effects.find(e => e.type === 'healStreak') as Extract<ItemEffect, { type: 'healStreak' }>
+      : undefined
+    if (healEffect && newStreak % healEffect.count === 0) {
+      setPlayerHp(h => Math.min(effectiveMaxHpRef.current, h + healEffect.hp))
+      showFloat(`💎 +${healEffect.hp} HP`, '#a78bfa')
     }
-    const dx   = x - dragOriginRef.current.x
-    const dy   = y - dragOriginRef.current.y
-    const dist = Math.sqrt(dx * dx + dy * dy)
-    const zone = getZone(dx, dy, dist)
-    if (zone !== hoverZoneRef.current) { hoverZoneRef.current = zone; applyZoneDOM(zone) }
-    grassLeanYRef.current = -(dx / Math.max(dist, 1)) * 0.1
-  }, [dragging])
 
-  const handlePointerUp = useCallback(() => {
-    if (!dragging) return
-    const zone = hoverZoneRef.current
-    hoverZoneRef.current  = null
-    grassLeanYRef.current = 0
-    grassSnapRef.current  = true
-    hideZonesDOM()
-    if (charElRef.current) {
-      charElRef.current.style.left      = '50%'
-      charElRef.current.style.top       = 'auto'
-      charElRef.current.style.bottom    = '88px'
-      charElRef.current.style.transform = 'translateX(-50%)'
-    }
-    setDragging(false)
-    if (!zone || phase !== 'choose') return
-
-    setPhase('waiting')
-    const hit        = zone === correctDir
-    const playerDmg  = calcPlayerDamage(equippedSpells, ownedItems, playerHp, effectiveMaxHpRef.current)
-    const newEnemyHp = hit ? Math.max(0, enemyHp - playerDmg) : enemyHp
-
-    if (hit) {
-      setEnemyHp(newEnemyHp)
-      showFloat(`⚔️ −${playerDmg}`, '#fbbf24')
-      triggerCharAnim('charAttack', 480)
-      enemyHitRef.current = true
-
-      const newStreak    = hitStreak + 1
-      setHitStreak(newStreak)
-      const healItemBase = ownedItems.find(i => i.effects.some(e => e.type === 'healStreak'))
-      const healEffect   = healItemBase
-        ? healItemBase.effects.find(e => e.type === 'healStreak') as Extract<ItemEffect, { type: 'healStreak' }>
-        : undefined
-      if (healEffect && newStreak % healEffect.count === 0) {
-        setPlayerHp(h => Math.min(effectiveMaxHpRef.current, h + healEffect.hp))
-        showFloat(`💎 +${healEffect.hp} HP`, '#a78bfa')
-      }
-
-      if (newEnemyHp <= 0) {
-        const bonusGold = ownedItems.flatMap(i => i.effects)
-          .filter(e => e.type === 'goldBonus')
-          .reduce((s, e) => s + (e as Extract<ItemEffect, { type: 'goldBonus' }>).amount, 0)
-        const earned = currentEnemyRef.current.goldReward + bonusGold
-        setGold(g => g + earned)
-        showFloat(`🏆 +${earned}💰`, '#fbbf24')
-        setHitStreak(0)
-        setTimeout(() => openChest(), 800)
-        return
-      }
-
-      const selfDmg = ownedItems.flatMap(i => i.effects)
-        .filter(e => e.type === 'selfDamageOnHit')
-        .reduce((s, e) => s + (e as Extract<ItemEffect, { type: 'selfDamageOnHit' }>).amount, 0)
-      if (selfDmg > 0) {
-        setPlayerHp(h => Math.max(0, h - selfDmg))
-        showFloat(`💀 −${selfDmg}`, '#a855f7')
-      }
-    } else {
+    if (newEnemyHp <= 0) {
+      const bonusGold = ownedItems.flatMap(i => i.effects)
+        .filter(e => e.type === 'goldBonus')
+        .reduce((s, e) => s + (e as Extract<ItemEffect, { type: 'goldBonus' }>).amount, 0)
+      const earned = currentEnemyRef.current.goldReward + bonusGold
+      setGold(g => g + earned)
+      showFloat(`🏆 +${earned}💰`, '#fbbf24')
       setHitStreak(0)
-      showFloat('💨 Промах!', '#94a3b8')
-      triggerCharAnim('charMiss', 480)
+      setTimeout(() => openChest(), 800)
+      return
     }
 
-    setTimeout(() => { enemyAttackRef.current = true }, 500)
+    const selfDmg = ownedItems.flatMap(i => i.effects)
+      .filter(e => e.type === 'selfDamageOnHit')
+      .reduce((s, e) => s + (e as Extract<ItemEffect, { type: 'selfDamageOnHit' }>).amount, 0)
+    if (selfDmg > 0) {
+      setPlayerHp(h => Math.max(0, h - selfDmg))
+      showFloat(`💀 −${selfDmg}`, '#a855f7')
+    }
+
+    // Enemy counter-attack (automatic)
+    setPhase('waiting')
+    setTimeout(() => { enemyAttackRef.current = true }, 400)
     setTimeout(() => {
       const accBonus = ownedItems.flatMap(i => i.effects)
         .filter(e => e.type === 'enemyAccuracyBonus')
@@ -372,15 +285,9 @@ export function App() {
       } else {
         showFloat('🛡️ Враг промахнулся', '#60a5fa')
       }
-      setTimeout(() => {
-        setCorrectDir(Math.random() < 0.5 ? 'left' : 'right')
-        setPhase('choose')
-      }, 900)
+      setTimeout(() => setPhase('choose'), 700)
     }, 900)
-  }, [
-    dragging, phase, correctDir, enemyHp, hitStreak, ownedItems, equippedSpells, playerHp,
-    calcPlayerDamage, openChest, showFloat, triggerCharAnim, triggerScreenFlash,
-  ])
+  }, [phase, appPhase, ownedItems, playerHp, enemyHp, hitStreak, openChest, showFloat, triggerCharAnim, triggerScreenFlash])
 
   const handlePathChoice = useCallback((path: PathType) => {
     setPhase('walking')
@@ -400,7 +307,6 @@ export function App() {
           setCurrentEnemy(nextEnemy)
           currentEnemyRef.current = nextEnemy
           setEnemyHp(nextEnemy.hp)
-          setCorrectDir(Math.random() < 0.5 ? 'left' : 'right')
           setPhase('choose')
         } else if (path === 'rest') {
           setPlayerHp(h => Math.min(effectiveMaxHpRef.current, h + HEAL_AMOUNT))
@@ -418,47 +324,244 @@ export function App() {
   // ── Render ────────────────────────────────────────────────────
   return (
     <div style={{ position: 'relative', width: '100vw', height: '100vh', overflow: 'hidden', fontFamily: PX }}>
-      {/* Three.js mount */}
+      {/* Three.js canvas */}
       <div ref={mountRef} style={{ width: '100%', height: '100%' }} />
 
-      {/* HUD (top + bottom) */}
-      <GameHUD
-        playerHp={playerHp} effectiveMaxHp={effectiveMaxHp}
-        enemyHp={enemyHp} currentEnemy={currentEnemy}
-        gold={gold} stepCount={stepCount} hitStreak={hitStreak}
-        phase={phase} dragging={dragging}
-        equippedSpells={equippedSpells} spellSlots={spellSlots}
-        onShowStats={() => setShowStats(true)}
-      />
+      {/* ── TOP BAR ───────────────────────────────────────────────── */}
+      <GameHUD gold={gold} stepCount={stepCount} hitStreak={hitStreak} />
+
+      {/* ── FRAME: vignette + side borders ────────────────────────── */}
+      <div style={{
+        position: 'absolute', top: 42, left: 0, right: 0, bottom: 196,
+        pointerEvents: 'none', zIndex: 20,
+        boxShadow: [
+          'inset 0 0 80px rgba(0,0,0,0.8)',
+          'inset 6px 0 0 #100d22',
+          'inset -6px 0 0 #100d22',
+        ].join(', '),
+      }} />
+
+      {/* Frame corner ornaments */}
+      {([
+        { top: 42,  left:  0, borderTop: '3px solid #c8a80077', borderLeft:  '3px solid #c8a80077' },
+        { top: 42,  right: 0, borderTop: '3px solid #c8a80077', borderRight: '3px solid #c8a80077' },
+        { bottom: 196, left:  0, borderBottom: '3px solid #c8a80077', borderLeft:  '3px solid #c8a80077' },
+        { bottom: 196, right: 0, borderBottom: '3px solid #c8a80077', borderRight: '3px solid #c8a80077' },
+      ] as React.CSSProperties[]).map((s, i) => (
+        <div key={i} style={{ position: 'absolute', width: 22, height: 22, pointerEvents: 'none', zIndex: 51, ...s }} />
+      ))}
+
+      {/* ── BOTTOM PANEL: textured dark base ──────────────────────── */}
+      <div style={{
+        position: 'absolute', bottom: 0, left: 0, right: 0, height: 196,
+        backgroundColor: '#07050f',
+        backgroundImage: 'radial-gradient(circle, #13102a 1px, transparent 1px)',
+        backgroundSize: '14px 14px',
+        borderTop: '3px solid #2a2448',
+        boxShadow: 'inset 0 3px 0 #100d22',
+        pointerEvents: 'none', zIndex: 98,
+      }} />
+
+      {/* ── ENEMY INFO: icon + name + HP numbers ──────────────────── */}
+      {appPhase === 'playing' && (phase === 'choose' || phase === 'waiting') && (() => {
+        const attacking = phase === 'waiting'
+        const elem = ELEM_DISPLAY.find(e => e.key === currentEnemy.element)
+        return (
+          <div style={{
+            position: 'absolute', top: '42%', left: '50%',
+            transform: 'translate(-50%, -100%)',
+            pointerEvents: 'none', zIndex: 25,
+            display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 5,
+            fontFamily: PX,
+            filter: attacking ? 'drop-shadow(0 0 10px #f04545bb)' : 'none',
+            transition: 'filter 0.3s',
+          }}>
+            {/* Icon + name */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              <span style={{ fontSize: 16, filter: 'drop-shadow(0 1px 3px #000)' }}>
+                {elem?.icon ?? '👾'}
+              </span>
+              <span style={{
+                color: attacking ? '#ff8888' : '#f06060',
+                fontSize: 5, letterSpacing: 1,
+                textShadow: '1px 1px 0 #000, 0 0 10px #000',
+              }}>
+                {currentEnemy.name.toUpperCase()}
+              </span>
+            </div>
+            {/* HP numbers only — no bar */}
+            <div style={{
+              background: '#000000cc',
+              border: `1px solid ${attacking ? '#f0454566' : '#f0454522'}`,
+              padding: '3px 12px',
+              display: 'flex', alignItems: 'baseline', gap: 4,
+            }}>
+              <span style={{ color: attacking ? '#ffaaaa' : '#ff7777', fontSize: 10 }}>
+                {enemyHp}
+              </span>
+              <span style={{ color: '#5a3838', fontSize: 7 }}>·</span>
+              <span style={{ color: '#8a6060', fontSize: 8 }}>{currentEnemy.hp}</span>
+            </div>
+          </div>
+        )
+      })()}
+
+      {/* ── HP ORB: bottom left (Diablo-style) ────────────────────── */}
+      {appPhase === 'playing' && (() => {
+        const pct     = Math.max(0, Math.min(100, playerHp / effectiveMaxHp * 100))
+        const color   = pct > 50 ? '#3af3a0' : pct > 25 ? '#f0c040' : '#f04545'
+        const darkClr = pct > 50 ? '#04240e' : pct > 25 ? '#2c1e00' : '#280606'
+        const isLow   = pct <= 25
+        return (
+          <div style={{
+            position: 'absolute', bottom: 24, left: 10, zIndex: 101,
+            pointerEvents: 'none',
+            display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4,
+          }}>
+            {/* Tick marks + orb wrapper */}
+            <div style={{ position: 'relative', width: 84, height: 84 }}>
+              {/* Cardinal tick marks */}
+              {([
+                { top: 0,   left: '50%', transform: 'translateX(-50%)', width: 4, height: 7 },
+                { bottom: 0, left: '50%', transform: 'translateX(-50%)', width: 4, height: 7 },
+                { left: 0,  top: '50%', transform: 'translateY(-50%)',  width: 7, height: 4 },
+                { right: 0, top: '50%', transform: 'translateY(-50%)',  width: 7, height: 4 },
+              ] as React.CSSProperties[]).map((s, i) => (
+                <div key={i} style={{
+                  position: 'absolute', background: '#c8a80066', ...s,
+                }} />
+              ))}
+
+              {/* Orb */}
+              <div style={{
+                position: 'absolute', top: 6, left: 6, width: 72, height: 72,
+                borderRadius: '50%', overflow: 'hidden',
+                background: '#06040e',
+                border: '3px solid #2a2048',
+                boxShadow: [
+                  '0 0 0 1px #c8a80088',
+                  `0 0 0 3px #1a1630`,
+                  `0 0 0 4px #c8a80033`,
+                  `0 0 20px ${color}33`,
+                  isLow ? `0 0 28px #f0454566` : '',
+                  '4px 4px 0 #000',
+                ].filter(Boolean).join(', '),
+                animation: isLow ? 'orbPulse 1.2s ease-in-out infinite' : 'none',
+              }}>
+                {/* Liquid */}
+                <div style={{
+                  position: 'absolute', left: 0, right: 0, bottom: 0,
+                  height: `${pct}%`,
+                  background: `linear-gradient(to top, ${darkClr} 0%, ${color}dd 100%)`,
+                  transition: 'height 0.35s ease-out',
+                }} />
+                {/* Wave surface */}
+                <div style={{
+                  position: 'absolute', left: '-18%', right: '-18%',
+                  bottom: `calc(${pct}% - 5px)`,
+                  height: 10, background: `${color}66`,
+                  borderRadius: '50%', transform: 'scaleX(1.4)',
+                  transition: 'bottom 0.35s ease-out',
+                }} />
+                {/* Vertical light stripe (liquid refraction) */}
+                <div style={{
+                  position: 'absolute', top: 0, bottom: 0,
+                  left: '38%', width: 4,
+                  background: `linear-gradient(to bottom, transparent 0%, ${color}22 40%, ${color}11 70%, transparent 100%)`,
+                }} />
+                {/* Glass shine */}
+                <div style={{
+                  position: 'absolute', inset: 0,
+                  background: 'radial-gradient(circle at 30% 24%, #ffffff66 0%, #ffffff22 28%, transparent 55%)',
+                }} />
+                {/* HP number */}
+                <div style={{
+                  position: 'absolute', inset: 0, zIndex: 1,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  fontFamily: PX, fontSize: 9, color: '#fff',
+                  textShadow: '1px 1px 0 #000, -1px -1px 0 #000, 0 0 10px #000',
+                }}>
+                  {playerHp}
+                </div>
+              </div>
+            </div>
+
+            {/* Max HP + label below orb */}
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1 }}>
+              <div style={{
+                width: 84, height: 1,
+                background: 'linear-gradient(90deg, transparent, #c8a80055, transparent)',
+              }} />
+              <span style={{ color: '#4a4060', fontSize: 4, fontFamily: PX }}>
+                / {effectiveMaxHp}
+              </span>
+            </div>
+          </div>
+        )
+      })()}
+
+      {/* ── STATS BUTTON: bottom right ─────────────────────────────── */}
+      {appPhase === 'playing' && (
+        <button
+          onClick={() => setShowStats(true)}
+          style={{
+            position: 'absolute', bottom: 28, right: 12, zIndex: 101,
+            width: 60, height: 60,
+            background: 'linear-gradient(135deg, #0e0c22, #1a1840)',
+            border: '3px solid #3a3660',
+            boxShadow: '0 0 0 1px #5050aa22, 4px 4px 0 #000, inset 0 0 16px #8080ff08',
+            cursor: 'pointer',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            flexDirection: 'column', gap: 3,
+            padding: 0,
+          }}
+        >
+          <div style={{ display: 'flex', gap: 3 }}>
+            {['#6060aa', '#8080cc', '#6060aa'].map((c, i) => (
+              <div key={i} style={{ width: 6, height: 6, background: c }} />
+            ))}
+          </div>
+          <div style={{ display: 'flex', gap: 3 }}>
+            {['#8080cc', '#a0a0ff', '#8080cc'].map((c, i) => (
+              <div key={i} style={{ width: 6, height: 6, background: c }} />
+            ))}
+          </div>
+          <div style={{ display: 'flex', gap: 3 }}>
+            {['#6060aa', '#8080cc', '#6060aa'].map((c, i) => (
+              <div key={i} style={{ width: 6, height: 6, background: c }} />
+            ))}
+          </div>
+        </button>
+      )}
+
+      {/* ── CARD HAND ─────────────────────────────────────────────── */}
+      {appPhase === 'playing' && (phase === 'choose' || phase === 'waiting') && (
+        <CardHand hand={hand} phase={phase} onPlayCard={handlePlayCard} />
+      )}
 
       {/* Stats modal */}
       {showStats && (
         <StatsPanel
           playerHp={playerHp} effectiveMaxHp={effectiveMaxHp}
           gold={gold} hitStreak={hitStreak}
-          equippedSpells={equippedSpells} ownedItems={ownedItems}
+          equippedSpells={hand} ownedItems={ownedItems}
           currentEnemy={currentEnemy} enemyHp={enemyHp}
           onClose={() => setShowStats(false)}
         />
       )}
 
-      {/* Combat interaction (character, zones, flash, float) */}
+      {/* Combat effects (flash, floats, char anim) */}
       <CombatOverlay
-        phase={phase} appPhase={appPhase}
-        correctDir={correctDir} telegraph={telegraph} dragging={dragging}
-        floatContainerRef={floatContainerRef} screenFlashRef={screenFlashRef}
-        charElRef={charElRef} charInnerRef={charInnerRef}
-        leftZoneRef={leftZoneRef} rightZoneRef={rightZoneRef}
-        onPointerDown={handlePointerDown}
-        onPointerMove={handlePointerMove}
-        onPointerUp={handlePointerUp}
+        floatContainerRef={floatContainerRef}
+        screenFlashRef={screenFlashRef}
+        charInnerRef={charInnerRef}
       />
 
       {/* Spell selection (game start) */}
       {appPhase === 'spellSelect' && (
         <SpellSelectScreen
           startOptions={startOptions}
-          onSelect={spell => { setEquippedSpells([spell]); setAppPhase('playing') }}
+          onSelect={spells => { setHand(spells.map(toHandSpell)); setAppPhase('playing') }}
         />
       )}
 
@@ -517,6 +620,10 @@ export function App() {
         @keyframes screenFlash {
           0%   { opacity: 1; }
           100% { opacity: 0; }
+        }
+        @keyframes orbPulse {
+          0%   { box-shadow: 0 0 0 1px #c8a80088, 0 0 0 3px #1a1630, 0 0 0 4px #c8a80033, 0 0 20px #f0454544, 0 0 32px #f0454522, 4px 4px 0 #000; }
+          100% { box-shadow: 0 0 0 1px #c8a800cc, 0 0 0 3px #1a1630, 0 0 0 4px #c8a80055, 0 0 28px #f04545aa, 0 0 48px #f0454544, 4px 4px 0 #000; }
         }
         @keyframes telegraphIn {
           0%   { opacity: 0; transform: translateX(-50%) scale(0.5); }

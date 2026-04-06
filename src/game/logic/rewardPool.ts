@@ -5,15 +5,12 @@ import type { GameItem } from '@game/data/items'
 import type { ChestOption } from '../../types'
 import { RARITY_WEIGHT } from '../../constants'
 
-/** Строит пул всех доступных наград (предметы + незанятые заклинания) */
-export function buildRewardPool(equippedSpells: Spell[], spellSlots: number): ChestOption[] {
-  const ownedSpIds  = new Set(equippedSpells.map(s => s.id))
-  const canAddSpell = equippedSpells.length < spellSlots
+/** Строит пул наград: предметы + карты заклинаний (без уже имеющихся в руке) */
+export function buildRewardPool(hand: Spell[]): ChestOption[] {
+  const handIds = new Set(hand.map(s => s.id))
   return [
     ...ALL_ITEMS.map(d => ({ kind: 'item' as const, data: d })),
-    ...(canAddSpell
-      ? ALL_SPELLS.filter(s => !ownedSpIds.has(s.id)).map(d => ({ kind: 'spell' as const, data: d }))
-      : []),
+    ...ALL_SPELLS.filter(s => !handIds.has(s.id)).map(d => ({ kind: 'spell' as const, data: d })),
   ]
 }
 

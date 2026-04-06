@@ -4,7 +4,7 @@ import * as THREE from 'three'
 import {
   TRACK_LEN, ROAD_HALF, ROAD_TILE_W,
   BIOME_EVERY, GROUND_D, BIOME_AHEAD,
-  ENEMY_SPRITE_FRAMES, ENEMY_SPRITE_UV,
+  ENEMY_SPRITE_FRAMES, ENEMY_SPRITE_UV, ENEMY_BASE_HEIGHT,
 } from '../constants'
 import { FOREST_BIOME } from '../game/biomes/forest'
 import type { BiomeObjectSpec } from '../game/biomes/forest'
@@ -98,8 +98,8 @@ export function useThreeScene(refs: ThreeSceneRefs): void {
     scene.fog = new THREE.Fog(biome.fogColor, biome.fogNear, biome.fogFar)
 
     const camera = new THREE.PerspectiveCamera(55, W / H, 0.1, 150)
-    camera.position.set(0, 2.2, 0)
-    camera.lookAt(0, 1.4, -50)
+    camera.position.set(0, 1.8, 0)   // eye level
+    camera.lookAt(0, 2.0, -50)        // смотрим прямо вперёд
 
     const loader  = new THREE.TextureLoader()
     const loadTex = (src: string) => {
@@ -235,13 +235,13 @@ export function useThreeScene(refs: ThreeSceneRefs): void {
     const enemyMesh = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), enemyMat)
     enemyMesh.renderOrder = 10   // всегда поверх объектов биома
     const [ifw, ifh] = startEnemy.framePx
-    const initH = 3.0; const initW = initH * ifw / ifh
+    const initH = ENEMY_BASE_HEIGHT; const initW = initH * ifw / ifh
     enemyMesh.scale.set(initW, initH, 1)
     enemyBaseScaleRef.current = [initW, initH]
     enemyMeshRef.current      = enemyMesh
 
-    const ENEMY_DIST   = 16
-    const ENEMY_BASE_Y = 1.5
+    const ENEMY_DIST   = 10
+    const ENEMY_BASE_Y = initH / 2   // ноги на уровне земли (y=0)
     enemyMesh.position.set(0, ENEMY_BASE_Y, -ENEMY_DIST)
     scene.add(enemyMesh)
 

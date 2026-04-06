@@ -1,4 +1,5 @@
 // ── Three.js / scene ──────────────────────────────────────────────
+export const ENEMY_BASE_HEIGHT = 2.5  // высота врага в мировых единицах (меняй здесь)
 export const GRASS_SRCS = [
   '/assets/Grass_1_64x64.png',
   '/assets/Grass_2_85x64.png',
