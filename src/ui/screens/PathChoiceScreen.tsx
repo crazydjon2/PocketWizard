@@ -1,5 +1,7 @@
+import { useState } from 'react'
 import type { PathType } from '../../types'
 import { PATH_META, PX } from '../../constants'
+import s from './PathChoiceScreen.module.css'
 
 interface Props {
   choices:  PathType[]
@@ -14,71 +16,88 @@ const PATH_HINT: Record<PathType, string> = {
 }
 
 export function PathChoiceScreen({ choices, onChoose }: Props) {
+  const [hovered, setHovered] = useState<number | null>(null)
+  const [flipped, setFlipped] = useState<number | null>(null)
+
+  const handleClick = (idx: number, path: PathType) => {
+    if (flipped !== null) return
+    setFlipped(idx)
+    setTimeout(() => onChoose(path), 480)
+  }
+
+  const n      = choices.length
+  const center = (n - 1) / 2
+
   return (
-    <div style={{
-      position: 'absolute', inset: 0,
-      background: 'rgba(2,2,8,0.88)',
-      display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-      zIndex: 45,
-      animation: 'overlayIn 0.2s ease forwards',
-    }}>
-      <div style={{
-        background: '#08080f',
-        border: '3px solid #c8a800',
-        boxShadow: 'inset 0 0 0 1px #3a2000, 6px 6px 0 #000',
-        width: '100%', maxWidth: 360, margin: '0 12px',
-        display: 'flex', flexDirection: 'column',
-        overflow: 'hidden',
-        animation: 'panelIn 0.3s cubic-bezier(0.16,1,0.3,1) both',
-      }}>
-        {/* Header */}
-        <div style={{
-          background: '#1a1200',
-          borderBottom: '2px solid #3a2000',
-          padding: '10px 14px',
-          display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0,
-        }}>
-          <span style={{ fontSize: 14 }}>🗺</span>
-          <span style={{ color: '#ffd700', fontSize: 8, letterSpacing: 1 }}>ВЫБЕРИ ПУТЬ</span>
-        </div>
+    <div className={s.root}>
+      <div className={s.label} style={{ fontFamily: PX }}>— ВЫБЕРИ СУДЬБУ —</div>
 
-        {/* Path buttons */}
-        <div style={{ display: 'flex', flexDirection: 'column' }}>
-          {choices.map((path, idx) => {
-            const m = PATH_META[path]
-            return (
-              <button key={path} onClick={() => onChoose(path)} style={{
-                background: 'transparent',
-                border: 'none',
-                borderBottom: idx < choices.length - 1 ? '1px solid #ffffff06' : 'none',
-                color: '#fff', cursor: 'pointer', fontFamily: PX,
-                display: 'flex', alignItems: 'center', gap: 14,
-                padding: '12px 14px',
-                textAlign: 'left',
-              }}>
-                {/* Color accent bar */}
-                <div style={{
-                  width: 3, alignSelf: 'stretch', flexShrink: 0,
-                  background: m.color,
-                  boxShadow: `1px 0 0 ${m.color}44`,
-                }} />
+      <div className={s.row}>
+        {choices.map((path, idx) => {
+          const m      = PATH_META[path]
+          const offset = idx - center
+          const rot    = offset * 5.5
+          const ty     = offset * offset * 3
+          const isHov  = hovered === idx && flipped === null
+          const isFlip = flipped === idx
 
-                <span style={{ fontSize: 22, flexShrink: 0 }}>{m.icon}</span>
+          return (
+            <div
+              key={path}
+              className={s.cardWrap}
+              style={{
+                cursor: flipped === null ? 'pointer' : 'default',
+                transform: `rotate(${rot}deg) translateY(${ty + (isHov ? -14 : 0)}px)`,
+                filter: isHov
+                  ? 'drop-shadow(0 8px 18px rgba(0,0,0,0.9)) drop-shadow(0 0 12px #c8a80066)'
+                  : 'drop-shadow(2px 4px 8px rgba(0,0,0,0.8))',
+              }}
+              onClick={() => handleClick(idx, path)}
+              onMouseEnter={() => { if (flipped === null) setHovered(idx) }}
+              onMouseLeave={() => setHovered(null)}
+            >
+              <div className={s.flipper} style={{ transform: isFlip ? 'rotateY(180deg)' : 'rotateY(0deg)' }}>
 
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 3, flex: 1 }}>
-                  <span style={{ color: m.color, fontSize: 7, letterSpacing: 1 }}>
-                    {m.label.toUpperCase()}
-                  </span>
-                  <span style={{ color: '#888', fontSize: 5 }}>
-                    {PATH_HINT[path]}
-                  </span>
+                {/* Back */}
+                <div className={s.cardBack} style={{
+                  background: 'linear-gradient(160deg, #0f0c1e 0%, #1a1535 50%, #0f0c1e 100%)',
+                  border: `2px solid ${isHov ? '#c8a80088' : '#2a2448'}`,
+                  boxShadow: isHov ? 'inset 0 0 20px #c8a80011' : 'inset 0 0 8px #00000044',
+                  fontFamily: PX,
+                }}>
+                  <div className={s.cardBackPattern} />
+                  <div className={s.cardBackRune} style={{ border: `2px solid ${isHov ? '#c8a80055' : '#2a244888'}` }}>
+                    <div className={s.cardBackRuneInner} style={{ border: `1px solid ${isHov ? '#c8a80044' : '#2a244866'}` }} />
+                  </div>
+                  {[0,1,2,3].map((_, i) => (
+                    <div key={i} className={s.cardBackDot} style={{
+                      top:    i < 2 ? 5 : undefined,
+                      bottom: i >= 2 ? 5 : undefined,
+                      left:   i % 2 === 0 ? 5 : undefined,
+                      right:  i % 2 === 1 ? 5 : undefined,
+                      background: isHov ? '#c8a80066' : '#2a244888',
+                    }} />
+                  ))}
                 </div>
 
-                <span style={{ color: m.color, fontSize: 10, flexShrink: 0 }}>▶</span>
-              </button>
-            )
-          })}
-        </div>
+                {/* Front */}
+                <div className={s.cardFront} style={{
+                  background: 'linear-gradient(160deg, #0a0612 0%, #16102a 55%, #0a0612 100%)',
+                  border: `2px solid ${m.color}88`,
+                  boxShadow: `inset 0 0 24px ${m.color}11`,
+                  fontFamily: PX,
+                }}>
+                  <div className={s.cardFrontAccentTop} style={{ background: `linear-gradient(90deg, transparent, ${m.color}cc, transparent)` }} />
+                  <div className={s.cardFrontAccentBot} style={{ background: `linear-gradient(90deg, transparent, ${m.color}88, transparent)` }} />
+                  <div className={s.cardFrontLabel} style={{ color: `${m.color}99` }}>{m.label.toUpperCase()}</div>
+                  <span className={s.cardFrontIcon} style={{ filter: `drop-shadow(0 0 10px ${m.color}88)` }}>{m.icon}</span>
+                  <div className={s.cardFrontHint}>{PATH_HINT[path]}</div>
+                </div>
+
+              </div>
+            </div>
+          )
+        })}
       </div>
     </div>
   )

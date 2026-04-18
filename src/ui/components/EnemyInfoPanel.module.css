@@ -1,0 +1,130 @@
+.backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  z-index: 110;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: overlayIn 0.18s ease forwards;
+}
+
+.panel {
+  background: #080610;
+  border: 2px solid #f0454533;
+  box-shadow: 0 0 30px #f0454522, 6px 6px 0 #000;
+  width: 280px;
+  max-width: 92vw;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 14px;
+  background: #f0454511;
+  border-bottom: 1px solid #f0454522;
+}
+
+.headerLeft {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.headerIcon {
+  font-size: 16px;
+}
+
+.headerName {
+  color: #f06060;
+  font-size: 6px;
+  letter-spacing: 1px;
+}
+
+.closeBtn {
+  background: none;
+  border: 1px solid #f0454533;
+  color: #f04545;
+  cursor: pointer;
+  font-size: 8px;
+  padding: 2px 7px;
+  line-height: 1;
+}
+
+.hpSection {
+  padding: 12px 16px;
+  border-bottom: 1px solid #ffffff06;
+}
+
+.hpBarWrap {
+  margin-bottom: 8px;
+}
+
+.hpRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.hpLabel {
+  color: #666;
+  font-size: 6px;
+}
+
+.hpMax {
+  color: #444;
+  font-size: 6px;
+}
+
+.stats {
+  padding: 10px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.statRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 5px 0;
+  border-bottom: 1px solid #ffffff04;
+}
+
+.statLabel {
+  color: #666;
+  font-size: 6px;
+}
+
+.statVal {
+  font-size: 7px;
+}
+
+.elemList {
+  display: flex;
+  gap: 6px;
+}
+
+.elemWeak {
+  color: #4ade80;
+  font-size: 6px;
+}
+
+.elemResist {
+  color: #f87171;
+  font-size: 6px;
+}
+
+.description {
+  padding: 10px 16px 14px;
+  border-top: 1px solid #ffffff06;
+}
+
+.descText {
+  color: #ffffff1a;
+  font-size: 5px;
+  line-height: 1.9;
+  margin: 0;
+  font-style: italic;
+}

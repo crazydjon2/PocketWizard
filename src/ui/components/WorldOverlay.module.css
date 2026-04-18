@@ -1,0 +1,808 @@
+/* ── Animations ── */
+@keyframes worldBob {
+  from { transform: translateY(0px); }
+  to   { transform: translateY(-6px); }
+}
+@keyframes overlayIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+/* ── Base overlay ── */
+.overlay {
+  position: absolute;
+  top: 46px; left: 0; right: 0; bottom: 0;
+  background: rgba(2, 3, 4, 0.94);
+  display: flex;
+  flex-direction: column;
+  z-index: 110;
+  animation: overlayIn 0.2s ease forwards;
+}
+
+/* ── Chest overlay ── */
+.chestOverlay {
+  position: absolute;
+  top: 46px; left: 0; right: 0; bottom: 0;
+  background: linear-gradient(180deg, #0a0700 0%, #060404 100%);
+  display: flex;
+  flex-direction: column;
+  z-index: 110;
+  animation: overlayIn 0.2s ease forwards;
+}
+
+.chestArt {
+  flex: 0 0 32%;
+  position: relative;
+  overflow: hidden;
+  background: #08060200;
+}
+
+.chestArtImg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center top;
+}
+
+.chestArtFallback {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 64px;
+  opacity: 0.12;
+}
+
+.chestArtGlow {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.chestTitleStrip {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 16px;
+  background: #080600;
+  border-top: 1px solid #c8a80022;
+  border-bottom: 1px solid #c8a80022;
+}
+
+.chestTitleLine {
+  flex: 1;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, #c8a80044);
+}
+
+.chestTitleLine:last-child {
+  background: linear-gradient(90deg, #c8a80044, transparent);
+}
+
+.chestTitleText {
+  color: #c8a800;
+  font-size: 7px;
+  letter-spacing: 3px;
+  text-shadow: 0 0 12px #c8a80066;
+  flex-shrink: 0;
+}
+
+/* ── Shop overlay ── */
+.shopOverlay {
+  position: absolute;
+  top: 46px; left: 0; right: 0; bottom: 0;
+  background: linear-gradient(180deg, #030810 0%, #020508 100%);
+  display: flex;
+  flex-direction: column;
+  z-index: 110;
+  animation: overlayIn 0.2s ease forwards;
+}
+
+.shopTop {
+  flex: 0 0 auto;
+  display: flex;
+  gap: 0;
+  min-height: 130px;
+  max-height: 38%;
+  border-bottom: 1px solid #0e2035;
+}
+
+.merchantArt {
+  flex: 0 0 42%;
+  position: relative;
+  overflow: hidden;
+  background: #03080f;
+  border-right: 1px solid #0e2035;
+}
+
+.merchantArtImg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center top;
+}
+
+.merchantArtFallback {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 52px;
+  opacity: 0.15;
+}
+
+.shopInfo {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px 14px;
+  justify-content: center;
+}
+
+.shopName {
+  color: #7dd3fc;
+  font-size: 9px;
+  letter-spacing: 3px;
+  text-shadow: 0 0 12px #7dd3fc44;
+}
+
+.shopDivider {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 16px;
+  background: #030810;
+}
+
+.shopDividerLine {
+  flex: 1;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, #7dd3fc22);
+}
+
+.shopDividerLine:last-child {
+  background: linear-gradient(90deg, #7dd3fc22, transparent);
+}
+
+.shopDividerText {
+  color: #7dd3fc44;
+  font-size: 6px;
+  letter-spacing: 2px;
+  flex-shrink: 0;
+}
+
+.rerollBtn {
+  border: 1px solid;
+  padding: 7px 10px;
+  font-size: 6.5px;
+  letter-spacing: 1px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.rerollCoin {
+  font-size: 8px;
+  margin-left: 2px;
+}
+
+.overlayHeader {
+  height: 46px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 14px;
+  background: #080a0c;
+  border-bottom: 1px solid #c8a80033;
+}
+
+.overlayHeaderBetween {
+  height: 46px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 14px;
+  background: #080a0c;
+  border-bottom: 1px solid #c8a80033;
+}
+
+.overlayTitle {
+  color: #c8a800;
+  font-size: 8px;
+  letter-spacing: 2px;
+  flex: 1;
+  text-shadow: 0 0 8px #c8a80044;
+}
+
+.overlayTitleFixed {
+  color: #c8a800;
+  font-size: 8px;
+  letter-spacing: 2px;
+  text-shadow: 0 0 8px #c8a80044;
+}
+
+.overlayCount {
+  color: #444;
+  font-size: 7px;
+  border: 1px solid #2a2a2a;
+  padding: 2px 7px;
+}
+
+/* ── Carousel ── */
+.viewport {
+  flex: 1;
+  overflow: hidden;
+}
+
+.carouselTrack {
+  display: flex;
+  align-items: center;
+  height: 100%;
+}
+
+.slide {
+  flex: 0 0 72%;
+  padding: 0 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.slideShop {
+  flex: 0 0 72%;
+  padding: 0 8px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  position: relative;
+}
+
+.emptyShelf {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #444;
+  font-size: 7px;
+  letter-spacing: 2px;
+}
+
+/* ── Item card ── */
+.card {
+  position: relative;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border-radius: 4px;
+}
+
+.cardGlow {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.cardTop {
+  padding: 13% 12% 3%;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  position: relative;
+  z-index: 11;
+}
+
+.cardName {
+  color: #ddd5c0;
+  font-size: 10px;
+  letter-spacing: 1px;
+  text-align: center;
+  text-shadow: 1px 1px 0 #000;
+  line-height: 1.3;
+}
+
+.cardBadge {
+  font-size: 6px;
+  letter-spacing: 1px;
+  padding: 2px 10px;
+  border: 1px solid;
+}
+
+.cardArt {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  z-index: 11;
+  min-height: 0;
+  padding: 0 10% 15%;
+}
+
+.cardIcon {
+  max-width: 75%;
+  max-height: 100%;
+  image-rendering: pixelated;
+  object-fit: contain;
+}
+
+.cardEmoji {
+  font-size: 64px;
+  line-height: 1;
+}
+
+.cardFrame {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  image-rendering: pixelated;
+  object-fit: fill;
+  pointer-events: none;
+  z-index: 10;
+}
+
+/* ── Desc panel ── */
+.descPanel {
+  flex-shrink: 0;
+  padding: 10px 20px 8px;
+  background: #05060a;
+  min-height: 90px;
+}
+
+.descPanelEmpty {
+  height: 90px;
+  flex-shrink: 0;
+}
+
+.descTags {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.tagPos {
+  color: #4ade80;
+  font-size: 7px;
+  line-height: 1.5;
+}
+
+.tagNeg {
+  color: #f87171;
+  font-size: 7px;
+  line-height: 1.5;
+}
+
+.descFlavor {
+  color: #ffffff55;
+  font-size: 6.5px;
+  line-height: 1.6;
+  font-style: italic;
+}
+
+.descNone {
+  color: #333;
+  font-size: 6px;
+  text-align: center;
+  padding-top: 16px;
+}
+
+/* ── Shop gold display ── */
+.shopGoldRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.shopGoldInner {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.goldCoin {
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 35%, #ffe566, #c8a800 60%, #7a5e00);
+  flex-shrink: 0;
+}
+
+.goldVal {
+  color: #c8a800;
+  font-size: 9px;
+}
+
+/* ── Price tag ── */
+.priceTag {
+  margin-top: 8px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 12px;
+  box-shadow: 0 2px 0 #000;
+}
+
+.goldCoinSm {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 35%, #ffe566, #c8a800 60%, #7a5e00);
+  flex-shrink: 0;
+}
+
+.priceVal {
+  font-size: 10px;
+}
+
+.priceOld {
+  font-size: 7px;
+  text-decoration: line-through;
+  color: #444;
+}
+
+.priceCantAfford {
+  color: #f04545;
+  font-size: 6px;
+  margin-left: 4px;
+}
+
+/* ── Shop footer ── */
+.shopFooter {
+  flex-shrink: 0;
+  padding: 10px 14px;
+  background: #080a0c;
+  border-top: 1px solid #ffffff08;
+}
+
+.leaveBtn {
+  width: 100%;
+  background: transparent;
+  border: 1px solid #c8a80033;
+  color: #c8a80088;
+  padding: 10px 0;
+  font-size: 7px;
+  letter-spacing: 3px;
+  cursor: pointer;
+}
+
+/* ── Path signs ── */
+.pathContainer {
+  display: flex;
+  gap: 20px;
+  align-items: flex-end;
+  justify-content: center;
+}
+
+.pathSign {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.pathSignBoard {
+  padding: 12px 16px 10px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  min-width: 80px;
+  transition: border-color 0.2s, box-shadow 0.2s, background 0.2s;
+  position: relative;
+}
+
+.pathNail {
+  position: absolute;
+  top: -5px;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+}
+
+/* ── Rest choice ── */
+.restContainer {
+  display: flex;
+  gap: 16px;
+  align-items: flex-end;
+  justify-content: center;
+}
+
+.restCard {
+  padding: 14px 12px 12px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  width: 110px;
+  transition: all 0.18s;
+  position: relative;
+}
+
+.restCardAccent {
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 2px;
+}
+
+.restCardShadow {
+  width: 70px;
+  height: 6px;
+  margin-top: 2px;
+  transition: background 0.2s;
+}
+
+.restTitle {
+  font-size: 14px;
+  transition: color 0.15s;
+}
+
+.restDesc {
+  color: #ffffff44;
+  font-size: 9px;
+  text-align: center;
+  line-height: 1.5;
+}
+
+/* ── Event scroll ── */
+.eventContainer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0;
+  animation: worldBob 2.2s ease-in-out infinite alternate;
+}
+
+.scrollRodTop {
+  width: 240px;
+  height: 10px;
+  background: linear-gradient(90deg, #2a1a00, #8a5a00, #c8a800, #8a5a00, #2a1a00);
+  border: 1px solid #c8a80044;
+  border-radius: 2px;
+}
+
+.scrollRodBottom {
+  width: 200px;
+  height: 8px;
+  background: linear-gradient(90deg, #2a1a00, #8a5a00, #c8a800, #8a5a00, #2a1a00);
+  border: 1px solid #c8a80044;
+  border-radius: 2px;
+}
+
+.scrollBody {
+  background: linear-gradient(160deg, #0e0b00ee, #1a1400ee);
+  border: 2px solid #c8a80044;
+  box-shadow: 0 6px 0 #000, inset 0 0 30px #c8a80008;
+  padding: 16px 20px 14px;
+  width: min(340px, 90vw);
+}
+
+.scrollTitle {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid #c8a80033;
+}
+
+.scrollTitleIcon {
+  font-size: 24px;
+  flex-shrink: 0;
+}
+
+.scrollTitleText {
+  color: #a78bfa;
+  font-size: 13px;
+  letter-spacing: 1px;
+  line-height: 1.3;
+}
+
+.scrollDesc {
+  color: #b8a880;
+  font-size: 11px;
+  line-height: 1.8;
+  margin: 0 0 14px;
+}
+
+.scrollChoices {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+
+.choiceBtn {
+  border: 2px solid;
+  cursor: pointer;
+  padding: 9px 12px;
+  font-size: 10px;
+  text-align: left;
+  line-height: 1.5;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  backdrop-filter: blur(2px);
+}
+
+.choiceBtnRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+}
+
+.choiceCosts {
+  display: flex;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.costHp {
+  background: #2a000088;
+  border: 1px solid #f8717155;
+  color: #f87171;
+  padding: 1px 6px;
+  font-size: 9px;
+}
+
+.choicePreview {
+  font-size: 8.5px;
+  padding-left: 12px;
+}
+
+.eventResolved {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.eventOutcome {
+  background: #0e0c1a99;
+  border: 1px solid #a78bfa44;
+  padding: 10px 12px;
+  font-size: 10px;
+  line-height: 1.6;
+  text-align: center;
+}
+
+.continueBtn {
+  background: #12102a99;
+  border: 2px solid #a78bfaaa;
+  color: #a78bfa;
+  cursor: pointer;
+  backdrop-filter: blur(2px);
+  padding: 12px;
+  font-size: 12px;
+  letter-spacing: 1px;
+  text-align: center;
+  width: 100%;
+}
+
+.scrollGroundShadow {
+  width: 180px;
+  height: 8px;
+  background: radial-gradient(ellipse, #00000088 0%, transparent 70%);
+  margin-top: 4px;
+}
+
+/* ── World diegetic area ── */
+.worldArea {
+  position: absolute;
+  top: 42px; left: 0; right: 0;
+  bottom: 196px;
+  z-index: 45;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding-bottom: 28px;
+  transition: opacity 0.3s ease;
+}
+
+/* ── Item detail overlay ── */
+.detailOverlay {
+  position: fixed;
+  inset: 0;
+  z-index: 400;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.88);
+  pointer-events: none;
+}
+
+.detailCard {
+  padding: 20px 24px;
+  width: 80vw;
+  max-width: 300px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.detailHeader {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.detailIconBox {
+  width: 64px;
+  height: 64px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.detailIconImg {
+  width: 44px;
+  height: 44px;
+  image-rendering: pixelated;
+  object-fit: contain;
+}
+
+.detailIconImgFull {
+  width: 100%;
+  height: 100%;
+  image-rendering: pixelated;
+  object-fit: contain;
+}
+
+.detailName {
+  font-size: 14px;
+  line-height: 1.3;
+  margin-bottom: 6px;
+  word-break: break-word;
+}
+
+.detailBadge {
+  font-size: 9px;
+  padding: 2px 8px;
+  display: inline-block;
+}
+
+.detailTags {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.detailTag {
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.detailSpellDesc {
+  color: #a78bfa;
+  font-size: 12px;
+  line-height: 1.7;
+}
+
+.detailFlavor {
+  font-size: 11px;
+  line-height: 1.7;
+  font-style: italic;
+  padding-top: 10px;
+}
+
+.detailHint {
+  color: #ffffff22;
+  font-size: 9px;
+  text-align: center;
+}

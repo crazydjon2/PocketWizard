@@ -1,111 +1,121 @@
+import { useState } from 'react'
 import type { Spell } from '@game/data/spells'
+import { spellIconSrc } from '@game/data/spells'
 import { ELEM_DISPLAY, PX } from '../../constants'
+import s from './SpellSelectScreen.module.css'
 
 interface Props {
   startOptions: Spell[]
-  onSelect:     (spell: Spell) => void
+  onSelect:     (spells: Spell[]) => void
+}
+
+const ELEM_BG: Record<string, string> = {
+  fire:      '#150500',
+  water:     '#001218',
+  physical:  '#0f0f0f',
+  dark:      '#0f0014',
+  lightning: '#141000',
+  earth:     '#0c0900',
 }
 
 export function SpellSelectScreen({ startOptions, onSelect }: Props) {
+  const [selected, setSelected] = useState<Set<string>>(new Set())
+
+  const toggle = (spell: Spell) => {
+    setSelected(prev => {
+      const next = new Set(prev)
+      if (next.has(spell.id)) next.delete(spell.id)
+      else if (next.size < 3) next.add(spell.id)
+      return next
+    })
+  }
+
+  const ready   = selected.size === 3
+  const confirm = () => { if (ready) onSelect(startOptions.filter(sp => selected.has(sp.id))) }
+
   return (
-    <div style={{
-      position: 'absolute', inset: 0,
-      background: 'rgba(2,2,8,0.96)',
-      display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-      gap: 16, zIndex: 70,
-      animation: 'overlayIn 0.2s ease forwards',
-    }}>
-      {/* Title panel */}
-      <div style={{
-        background: '#08080f',
-        border: '3px solid #c8a800',
-        boxShadow: 'inset 0 0 0 1px #3a2000, 6px 6px 0 #000',
-        width: '100%', maxWidth: 360, margin: '0 12px',
-        overflow: 'hidden',
-        animation: 'panelIn 0.3s cubic-bezier(0.16,1,0.3,1) both',
-      }}>
-        {/* Header */}
-        <div style={{
-          background: '#1a1200',
-          borderBottom: '2px solid #3a2000',
-          padding: '10px 14px',
-          display: 'flex', alignItems: 'center', gap: 8,
-        }}>
-          <span style={{ fontSize: 14 }}>✨</span>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-            <span style={{ color: '#ffd700', fontSize: 8, letterSpacing: 1 }}>ВЫБЕРИ ЗАКЛИНАНИЕ</span>
-            <span style={{ color: '#888', fontSize: 5, letterSpacing: 1 }}>
-              2-Й СЛОТ ОТКРОЕТСЯ ПОСЛЕ ПЕРВОЙ ПОБЕДЫ
-            </span>
-          </div>
-        </div>
+    <div className={s.root} style={{ fontFamily: PX }}>
 
-        {/* Spell list */}
-        <div style={{ display: 'flex', flexDirection: 'column' }}>
-          {startOptions.map((spell, idx) => {
-            const ed    = ELEM_DISPLAY.find(e => e.key === spell.element)
-            const color = ed?.color ?? '#ffd700'
-            return (
-              <button key={spell.id} onClick={() => onSelect(spell)} style={{
-                background: 'transparent',
-                border: 'none',
-                borderBottom: idx < startOptions.length - 1 ? '1px solid #ffffff06' : 'none',
-                cursor: 'pointer', fontFamily: PX,
-                display: 'flex', alignItems: 'center', gap: 12,
-                padding: '12px 14px',
-              }}>
-                {/* Icon frame */}
-                <div style={{
-                  width: 52, height: 52, flexShrink: 0,
-                  background: '#0e0c1e',
-                  border: `2px solid ${color}`,
-                  boxShadow: `inset 0 0 0 1px ${color}33, 2px 2px 0 #000`,
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  fontSize: 28,
-                }}>
-                  {spell.icon}
-                </div>
-
-                {/* Info */}
-                <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 4, minWidth: 0 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                    <span style={{
-                      color, fontSize: 7, flex: 1,
-                      overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-                    }}>
-                      {spell.name.toUpperCase()}
-                    </span>
-                    <span style={{
-                      background: `${color}22`,
-                      border: `1px solid ${color}44`,
-                      color, fontSize: 5, padding: '1px 5px', flexShrink: 0,
-                    }}>
-                      {ed?.label.toUpperCase() ?? spell.element.toUpperCase()}
-                    </span>
-                  </div>
-                  <span style={{ color: '#8888aa', fontSize: 5, lineHeight: 1.6 }}>
-                    {spell.description}
-                  </span>
-                </div>
-
-                {/* Damage badge */}
-                <div style={{
-                  flexShrink: 0,
-                  background: '#0e0c1e',
-                  border: `2px solid ${color}`,
-                  boxShadow: `inset 0 0 0 1px ${color}33, 2px 2px 0 #000`,
-                  padding: '4px 8px',
-                  display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1,
-                  minWidth: 40,
-                }}>
-                  <span style={{ color: '#888', fontSize: 4 }}>УРОН</span>
-                  <span style={{ color, fontSize: 10, fontFamily: PX }}>{spell.baseDamage}</span>
-                </div>
-              </button>
-            )
-          })}
-        </div>
+      <div className={s.title}>
+        <div className={s.titleMain}>ВЫБЕРИ КАРТЫ</div>
+        <div className={s.titleSub}>ВЫБЕРИ 3 КАРТЫ ДЛЯ НАЧАЛА ИГРЫ</div>
       </div>
+
+      <div className={s.grid}>
+        {startOptions.map(spell => {
+          const elem    = ELEM_DISPLAY.find(e => e.key === spell.element)
+          const color   = elem?.color ?? '#c8a800'
+          const isOn    = selected.has(spell.id)
+          const blocked = !isOn && selected.size >= 3
+
+          return (
+            <button
+              key={spell.id}
+              onClick={() => toggle(spell)}
+              disabled={blocked}
+              className={[s.card, blocked ? s['card--blocked'] : s['card--selectable']].join(' ')}
+              style={{
+                background: ELEM_BG[spell.element] ?? '#0f0f0f',
+                border: `2px solid ${isOn ? color : color + '44'}`,
+                boxShadow: isOn
+                  ? `inset 0 0 0 1px ${color}55, 0 0 18px ${color}55, 2px 2px 0 #000`
+                  : `inset 0 0 0 1px ${color}1a, 2px 2px 0 #000`,
+                fontFamily: PX,
+              }}
+            >
+              <div className={s.cardAccent} style={{ background: isOn ? color : color + '55' }} />
+
+              <div className={s.cardHeader}>
+                <span className={s.cardElemLabel} style={{ color: isOn ? color : color + '88' }}>
+                  {elem?.label.toUpperCase() ?? spell.element.toUpperCase()}
+                </span>
+                <span className={s.cardElemIcon}>{elem?.icon}</span>
+              </div>
+
+              <div className={s.cardIconArea}>
+                {spellIconSrc(spell.id)
+                  ? <img src={spellIconSrc(spell.id)!} draggable={false} className={s.cardImg}
+                      style={{ filter: isOn ? `drop-shadow(0 0 6px ${color}88)` : 'grayscale(0.5) brightness(0.5)' }} />
+                  : <span className={s.cardEmoji}>{spell.icon}</span>
+                }
+              </div>
+
+              <div className={s.cardFooter} style={{ borderTop: `1px solid ${color}33` }}>
+                <div className={s.cardName} style={{ color: isOn ? '#ddd' : '#666' }}>
+                  {spell.name.toUpperCase()}
+                </div>
+                <div className={s.cardDmg} style={{ color: isOn ? color : color + '77' }}>
+                  {spell.baseDamage}
+                </div>
+              </div>
+
+              {isOn && (
+                <div className={s.checkmark} style={{ background: color }}>✓</div>
+              )}
+            </button>
+          )
+        })}
+      </div>
+
+      <div className={s.counter}>
+        {selected.size} / 3
+        {selected.size > 0 && <span className={s.counterRem}> — {3 - selected.size} ещё</span>}
+      </div>
+
+      <button
+        onClick={confirm}
+        disabled={!ready}
+        className={[s.confirmBtn, !ready ? s['confirmBtn--disabled'] : ''].join(' ')}
+        style={{
+          background:  ready ? '#1a1200' : '#0c0c0c',
+          border:      `3px solid ${ready ? '#c8a800' : '#333'}`,
+          boxShadow:   ready ? 'inset 0 0 0 1px #3a2000, 4px 4px 0 #000, 0 0 20px #c8a80044' : 'inset 0 0 0 1px #222, 2px 2px 0 #000',
+          color:       ready ? '#ffd700' : '#444',
+          fontFamily:  PX,
+        }}
+      >
+        {ready ? '▶ В БОЙ' : '— ВЫБЕРИ 3 —'}
+      </button>
     </div>
   )
 }

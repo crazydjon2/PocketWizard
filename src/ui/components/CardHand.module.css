@@ -1,0 +1,57 @@
+.viewport {
+  /* overflow-x: hidden; */
+  overflow-y: visible;
+  height: 100%;
+}
+
+.container {
+  display: flex;
+  height: 100%;
+  align-items: flex-end;  /* cards sit on the bottom edge of the HUD */
+}
+
+.slide {
+  flex: 0 0 40%;
+  min-width: 0;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  /* taller than the panel → card art overflows above */
+  height: clamp(165px, 42svh, 195px);
+  padding: 0 min(8px, 2vw) 8px;
+  touch-action: none;
+  transition: opacity 0.15s;
+  overflow: visible;
+}
+
+.slide--drag {
+  opacity: 0.15;
+}
+
+.slide--play {
+  cursor: grab;
+}
+
+.dropZone {
+  position: absolute;
+  top: 60px;
+  left: 15%;
+  right: 15%;
+  height: 2px;
+  pointer-events: none;
+  z-index: 99;
+  transition: background 0.15s, box-shadow 0.15s;
+}
+
+.ghost {
+  position: fixed;
+  pointer-events: none;
+  z-index: 200;
+  transform: rotate(-2deg);
+}
+
+@keyframes dmgPop {
+  0%   { transform: scale(1.55); opacity: 0.4; }
+  60%  { transform: scale(0.92); opacity: 1; }
+  100% { transform: scale(1);    opacity: 1; }
+}

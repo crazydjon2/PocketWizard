@@ -4,6 +4,9 @@ import { resolve } from 'path'
 
 export default defineConfig({
   plugins: [react()],
+  server: {
+    host: true,
+  },
   resolve: {
     alias: {
       '@game': resolve(__dirname, 'src/game'),
@@ -13,5 +16,8 @@ export default defineConfig({
       '@tg': resolve(__dirname, 'src/tg'),
       '@hooks': resolve(__dirname, 'src/hooks'),
     },
+  },
+  test: {
+    environment: 'node',
   },
 })

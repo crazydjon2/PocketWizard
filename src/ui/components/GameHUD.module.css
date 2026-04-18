@@ -1,0 +1,203 @@
+.bar {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 46px;
+  z-index: 100;
+  background: #080a0c;
+  border-bottom: 1px solid #c8a80033;
+  box-shadow: 0 2px 8px #000000cc, 0 1px 0 #ffffff05;
+  display: flex;
+  align-items: center;
+  padding: 0 10px;
+  gap: 0;
+}
+
+/* ── Gold ── */
+.gold {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  flex-shrink: 0;
+  padding: 0 10px 0 2px;
+}
+
+.goldCoin {
+  width: 13px;
+  height: 13px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 35%, #ffe566, #c8a800 60%, #7a5e00);
+  border: 1px solid #c8a80066;
+  box-shadow: 0 0 5px #c8a80044;
+  flex-shrink: 0;
+}
+
+.goldVal {
+  color: #c8a800;
+  font-size: 9px;
+  text-shadow: 0 0 6px #c8a80044, 1px 1px 0 #000;
+  min-width: 18px;
+}
+
+/* ── Divider ── */
+.sep {
+  width: 1px;
+  align-self: stretch;
+  margin: 10px 0;
+  background: #ffffff0f;
+  flex-shrink: 0;
+}
+
+/* ── HP ── */
+.hp {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+  padding: 0 10px;
+}
+
+.hpHeart {
+  font-size: 11px;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.hpBlock {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.hpNumRow {
+  display: flex;
+  align-items: baseline;
+  gap: 2px;
+  line-height: 1;
+}
+
+.hpCurrent {
+  font-size: 9px;
+  line-height: 1;
+  transition: color 0.3s;
+}
+
+.hpMax {
+  color: #333333;
+  font-size: 5px;
+  line-height: 1;
+}
+
+.hpTrack {
+  width: 68px;
+  height: 5px;
+  background: #0d0d0d;
+  border: 1px solid #1e1e1e;
+  position: relative;
+  overflow: hidden;
+}
+
+.hpFill {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  transition: width 0.35s ease-out, background 0.3s;
+}
+
+.hpTick {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  background: #00000088;
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* ── Spacer ── */
+.spacer {
+  flex: 1;
+}
+
+/* ── Streak ── */
+.streak {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  background: #f0c04010;
+  border: 1px solid #f0c04044;
+  padding: 3px 7px;
+  flex-shrink: 0;
+}
+
+.streakIcon {
+  font-size: 9px;
+  line-height: 1;
+}
+
+.streakVal {
+  color: #f0c040;
+  font-size: 7px;
+  text-shadow: 0 0 6px #f0c04066;
+}
+
+/* ── Stats button ── */
+.statsBtn {
+  flex-shrink: 0;
+  width: 26px;
+  height: 26px;
+  background: #0f0f0f;
+  border: 1px solid #2a2a2a;
+  box-shadow: 2px 2px 0 #000, inset 0 1px 0 #ffffff07;
+  cursor: pointer;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  gap: 2px;
+  pointer-events: auto;
+  transition: border-color 0.15s;
+}
+
+.statsBtn:active {
+  border-color: #c8a80055;
+  box-shadow: 1px 1px 0 #000;
+}
+
+.statsBtnRow {
+  display: flex;
+  gap: 2px;
+}
+
+.statsBtnPx {
+  width: 4px;
+  height: 4px;
+}
+
+/* ── Steps ── */
+.steps {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  flex-shrink: 0;
+  padding: 0 2px 0 10px;
+}
+
+.stepsIcon {
+  font-size: 11px;
+  line-height: 1;
+}
+
+.stepsVal {
+  color: #888888;
+  font-size: 9px;
+  min-width: 14px;
+}
+
+@keyframes hpPulse {
+  from { opacity: 0.6; }
+  to   { opacity: 1; }
+}

@@ -1,4 +1,5 @@
 // ── Three.js / scene ──────────────────────────────────────────────
+export const ENEMY_BASE_HEIGHT = 2.5  // высота врага в мировых единицах (меняй здесь)
 export const GRASS_SRCS = [
   '/assets/Grass_1_64x64.png',
   '/assets/Grass_2_85x64.png',
@@ -28,6 +29,12 @@ export const ENEMY_SPRITE_UV: [number, number][] = [
   [0,   0.5], [0.5, 0.5],  // кадр 0,1 — верхний ряд
   [0,   0  ], [0.5, 0  ],  // кадр 2,3 — нижний ряд
 ]
+export const ENEMY_SPRITE_FRAMES_16 = 16  // 4×4 grid
+// UV offsets для 16 кадров (4×4), col major left-to-right, top-to-bottom
+export const ENEMY_SPRITE_UV_16: [number, number][] = Array.from({ length: 16 }, (_, i) => [
+  (i % 4) * 0.25,
+  (3 - Math.floor(i / 4)) * 0.25,
+] as [number, number])
 
 // ── Game balance ───────────────────────────────────────────────────
 export const MAX_HP      = 60
