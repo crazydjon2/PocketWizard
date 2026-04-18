@@ -1,4 +1,5 @@
 import type { RefObject } from 'react'
+import s from './CombatOverlay.module.css'
 
 interface Props {
   floatContainerRef: RefObject<HTMLDivElement>
@@ -10,18 +11,9 @@ export function CombatOverlay({ floatContainerRef, screenFlashRef, charInnerRef 
   return (
     <>
       {/* Hidden element for CSS hit/attack animations */}
-      <div ref={charInnerRef} style={{ position: 'absolute', pointerEvents: 'none' }} />
-
-      {/* Screen flash (damage, etc.) */}
-      <div ref={screenFlashRef} style={{
-        position: 'absolute', inset: 0, opacity: 0,
-        pointerEvents: 'none', zIndex: 18,
-      }} />
-
-      {/* Floating damage/status numbers */}
-      <div ref={floatContainerRef} style={{
-        position: 'absolute', inset: 0, pointerEvents: 'none', zIndex: 30,
-      }} />
+      <div ref={charInnerRef} className={s.char} />
+      <div ref={screenFlashRef} className={s.flash} />
+      <div ref={floatContainerRef} className={s.floats} />
     </>
   )
 }

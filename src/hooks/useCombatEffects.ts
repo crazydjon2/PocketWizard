@@ -7,24 +7,27 @@ interface CombatEffectRefs {
   screenFlashRef:    RefObject<HTMLDivElement>
 }
 
+let _floatSlot = 0
+
 export function useCombatEffects({ floatContainerRef, charInnerRef, screenFlashRef }: CombatEffectRefs) {
   /** Всплывающий текст (урон / лечение / промах) */
   const showFloat = useCallback((text: string, color: string) => {
     const c = floatContainerRef.current
     if (!c) return
+    const slot = _floatSlot++
     const el = document.createElement('div')
     el.textContent = text
     el.style.cssText = [
-      'position:absolute', 'left:50%', 'bottom:220px',
+      'position:absolute', 'left:50%', `bottom:${220 + slot * 26}px`,
       'transform:translateX(-50%)',
       `color:${color}`,
       "font-size:14px", "font-family:'Press Start 2P',monospace",
       'text-shadow:2px 2px 0 #000',
-      'animation:floatUp 1.0s ease-out forwards',
+      'animation:floatUp 1.4s ease-out forwards',
       'pointer-events:none', 'white-space:nowrap',
     ].join(';')
     c.appendChild(el)
-    setTimeout(() => el.remove(), 1050)
+    setTimeout(() => { el.remove(); _floatSlot = Math.max(0, _floatSlot - 1) }, 1450)
   }, [floatContainerRef])
 
   /** CSS-анимация на спрайте персонажа */

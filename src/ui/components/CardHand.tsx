@@ -1,14 +1,26 @@
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useRef, useEffect } from 'react'
+import useEmblaCarousel from 'embla-carousel-react'
+import s from './CardHand.module.css'
 import type { HandSpell } from '@game/data/spells'
-import { PUNCH_SPELL } from '@game/data/spells'
+import { PUNCH_SPELL, spellIconSrc } from '@game/data/spells'
+import type { GameItem, ItemEffect } from '@game/data/items'
+import type { EnemyDef } from '@game/data/enemies'
 import type { Phase } from '../../types'
 import { ELEM_DISPLAY, PX } from '../../constants'
+import { calcCardDamage } from '@game/logic/combatCalc'
 
 interface Props {
-  hand:       HandSpell[]
-  phase:      Phase
-  onPlayCard: (card: HandSpell) => void
+  hand:           HandSpell[]
+  phase:          Phase
+  onPlayCard:     (card: HandSpell) => void
+  ownedItems:     GameItem[]
+  gold:           number
+  playerHp:       number
+  effectiveMaxHp: number
+  currentEnemy:   EnemyDef
 }
+
+
 
 // ── Element theming ───────────────────────────────────────────────
 const ELEM_THEME: Record<string, { bg: string; glow: string; mid: string }> = {
@@ -21,303 +33,351 @@ const ELEM_THEME: Record<string, { bg: string; glow: string; mid: string }> = {
 }
 const PUNCH_THEME = { bg: 'linear-gradient(170deg,#161000 0%,#2a1e00 55%,#3d2c00 100%)', glow: '#ffd700', mid: '#c8a800' }
 
-interface DragState { card: HandSpell; idx: number; startY: number; x: number; y: number }
+// CSS filter to tint the gold spell_frame per element
+// sepia(1) → warm base ~35°, then hue-rotate shifts to target hue
+const FRAME_FILTER: Record<string, string> = {
+  fire:      'sepia(1) saturate(4) hue-rotate(330deg) brightness(1.1)',
+  water:     'sepia(1) saturate(4) hue-rotate(170deg)',
+  physical:  'grayscale(1) brightness(0.65)',
+  dark:      'sepia(1) saturate(4) hue-rotate(240deg) brightness(1.1)',
+  lightning: 'sepia(1) saturate(3) brightness(1.25)',
+  earth:     'sepia(1) saturate(2) hue-rotate(8deg) brightness(0.8)',
+}
 
 const PUNCH_HAND: HandSpell = { ...PUNCH_SPELL, charges: Infinity, instanceId: 'punch' }
 
-// ── Card visual ───────────────────────────────────────────────────
-function CardFace({ card, active, lifted }: { card: HandSpell; active: boolean; lifted?: boolean }) {
+// ── Drag state for vertical (play) gesture ────────────────────────
+interface PlayDrag {
+  card:    HandSpell
+  startY:  number
+  currentY: number
+}
+
+// ── Card face ─────────────────────────────────────────────────────
+function CardFace({ card, active, lifted, displayDamage, conditionalBonus = 0, enemyMod = null }: {
+  card: HandSpell; active: boolean; lifted?: boolean
+  displayDamage: number; conditionalBonus?: number
+  enemyMod?: { text: string; color: string } | null
+}) {
   const elem  = ELEM_DISPLAY.find(e => e.key === card.element)
   const theme = card.infinite ? PUNCH_THEME : (ELEM_THEME[card.element] ?? ELEM_THEME.physical)
   const color = theme.glow
   const isLow = !card.infinite && card.charges === 1
+  const hasBonus = displayDamage !== card.baseDamage
 
   return (
     <div style={{
       width: '100%', height: '100%',
       background: theme.bg,
-      border: `3px solid ${active ? color : color + '55'}`,
       boxShadow: lifted
-        ? `0 0 32px ${color}88, 0 0 8px ${color}44, inset 0 0 24px ${color}22, 6px 6px 0 #000`
+        ? `0 0 40px ${color}55, inset 0 0 24px ${color}14`
         : active
-          ? `0 0 12px ${color}44, inset 0 0 16px ${color}18, 4px 4px 0 #000`
-          : `inset 0 0 8px ${color}0a, 2px 2px 0 #000`,
+          ? `inset 0 0 20px ${color}12`
+          : 'none',
       display: 'flex', flexDirection: 'column',
       overflow: 'hidden', position: 'relative',
       fontFamily: PX, userSelect: 'none',
-      transition: lifted ? 'none' : 'box-shadow 0.2s, border-color 0.2s',
+      transition: lifted ? 'none' : 'box-shadow 0.2s',
     }}>
 
-      {/* Radial glow behind icon */}
-      <div style={{
-        position: 'absolute', inset: 0,
-        background: `radial-gradient(ellipse at 50% 42%, ${color}${active ? '22' : '0c'} 0%, transparent 70%)`,
-        pointerEvents: 'none',
-      }} />
+      {/* Ambient glow */}
+      <div style={{ position: 'absolute', inset: 0, background: `radial-gradient(ellipse at 50% 45%, ${color}${active ? '18' : '06'} 0%, transparent 65%)`, pointerEvents: 'none' }} />
 
-      {/* Top accent bar */}
-      <div style={{
-        height: 4, flexShrink: 0,
-        background: active
-          ? `linear-gradient(90deg, ${color}dd, ${theme.mid}88, ${color}dd)`
-          : `linear-gradient(90deg, ${color}55, ${theme.mid}33, ${color}55)`,
-      }} />
+      {/* Spell frame overlay */}
+      <img
+        src="/assets/spell_frame.png"
+        draggable={false}
+        style={{
+          position: 'absolute', inset: 0,
+          width: '100%', height: '100%',
+          imageRendering: 'pixelated',
+          objectFit: 'fill',
+          pointerEvents: 'none',
+          opacity: active ? 1 : 0.5,
+          transition: 'opacity 0.2s, filter 0.2s',
+          filter: card.infinite ? undefined : (FRAME_FILTER[card.element] ?? undefined),
+          zIndex: 10,
+        }}
+      />
 
-      {/* Header: element badge */}
-      <div style={{
-        padding: '4px 6px 2px',
-        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        flexShrink: 0,
-      }}>
-        <div style={{
-          background: active ? `${color}22` : `${color}0d`,
-          border: `1px solid ${active ? color + '66' : color + '22'}`,
-          padding: '1px 4px',
-          display: 'flex', alignItems: 'center', gap: 3,
-        }}>
-          <span style={{ fontSize: 7, lineHeight: 1 }}>
-            {card.infinite ? '∞' : elem?.icon}
-          </span>
-          <span style={{ color: active ? color + 'cc' : color + '55', fontSize: 3.5, letterSpacing: 0.5 }}>
-            {card.infinite ? 'БАЗОВЫЙ' : (elem?.label.toUpperCase() ?? '')}
-          </span>
-        </div>
-
-        {/* Damage circle */}
-        <div style={{
-          width: 22, height: 22,
-          background: active ? `${color}33` : `${color}11`,
-          border: `2px solid ${active ? color : color + '44'}`,
-          borderRadius: 0,
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          flexShrink: 0,
-        }}>
-          <span style={{ color: active ? color : color + '77', fontSize: 8, lineHeight: 1 }}>
-            {card.baseDamage}
-          </span>
-        </div>
-      </div>
-
-      {/* Main icon area */}
-      <div style={{
-        flex: 1,
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-        position: 'relative',
-      }}>
-        <span style={{
-          fontSize: 40, lineHeight: 1,
-          filter: active
-            ? `drop-shadow(0 0 8px ${color}99)`
-            : 'grayscale(0.5) brightness(0.55)',
-          transition: 'filter 0.2s',
-        }}>
-          {card.icon}
-        </span>
-      </div>
-
-      {/* Footer */}
-      <div style={{
-        background: `linear-gradient(to bottom, transparent, #00000088)`,
-        borderTop: `1px solid ${active ? color + '44' : color + '1a'}`,
-        padding: '4px 6px 6px',
-        flexShrink: 0,
-      }}>
-        {/* Name */}
-        <div style={{
-          color: active ? '#ddd' : '#444',
-          fontSize: 3.5, lineHeight: 1.4, textAlign: 'center',
-          overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis',
-          marginBottom: 3,
-        }}>
+      {/* ── Top: name + element ── */}
+      {/* padding % = relative to card width → scales with card size */}
+      <div style={{ padding: '14% 11% 3%', flexShrink: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3, zIndex: 11 }}>
+        <div style={{ color: active ? '#e8e0c8' : '#4a4030', fontSize: 4.5, lineHeight: 1.2, textAlign: 'center', overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis', letterSpacing: 0.8, maxWidth: '100%', transition: 'color 0.2s', textShadow: active ? '0 1px 4px #000' : 'none' }}>
           {card.name.toUpperCase()}
         </div>
+        <div style={{ background: `${color}${active ? '28' : '10'}`, border: `1px solid ${active ? color + '66' : color + '22'}`, padding: '1px 5px', display: 'flex', alignItems: 'center', gap: 2, transition: 'background 0.2s, border-color 0.2s' }}>
+          <span style={{ fontSize: 7, lineHeight: 1 }}>{card.infinite ? '⚔' : elem?.icon}</span>
+          <span style={{ color: active ? color : color + '44', fontSize: 3.5, letterSpacing: 0.5, transition: 'color 0.2s' }}>
+            {card.infinite ? 'УДАР' : (elem?.label.toUpperCase() ?? '')}
+          </span>
+        </div>
+      </div>
 
-        {/* Charges */}
-        {!card.infinite && (
-          <div style={{ display: 'flex', justifyContent: 'center', gap: 3 }}>
-            {Array.from({ length: card.maxCharges ?? 3 }).map((_, i) => (
-              <div key={i} style={{
-                width: i < card.charges ? 8 : 6,
-                height: i < card.charges ? 8 : 6,
-                background: i < card.charges
-                  ? (isLow ? '#f04545' : color)
-                  : color + '1a',
-                border: `1px solid ${i < card.charges ? (isLow ? '#f04545aa' : color + 'aa') : color + '22'}`,
-                boxShadow: i < card.charges && active ? `0 0 4px ${isLow ? '#f04545' : color}88` : 'none',
-                alignSelf: 'center',
-              }} />
-            ))}
+      {/* ── Art area ── */}
+      <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', padding: '2% 12%', zIndex: 11 }}>
+        {spellIconSrc(card.id)
+          ? <img src={spellIconSrc(card.id)!} draggable={false} style={{ width: '85%', height: '85%', imageRendering: 'pixelated', objectFit: 'contain', filter: active ? `drop-shadow(0 0 10px ${color}aa)` : 'grayscale(0.7) brightness(0.35)', transition: 'filter 0.2s' }} />
+          : <span style={{ fontSize: 32, lineHeight: 1, filter: active ? `drop-shadow(0 0 10px ${color}99)` : 'grayscale(0.5) brightness(0.45)', transition: 'filter 0.2s' }}>{card.icon}</span>
+        }
+      </div>
+
+      {/* ── Bottom: damage + charges ── */}
+      <div style={{ padding: '3% 11% 14%', flexShrink: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 5, zIndex: 11 }}>
+        {/* Damage */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+          <div style={{
+            width: 26, height: 26,
+            background: hasBonus ? (active ? '#4ade8022' : '#4ade8010') : (active ? `${color}22` : `${color}0c`),
+            border: `2px solid ${hasBonus ? (active ? '#4ade80cc' : '#4ade8033') : (active ? color + 'cc' : color + '28')}`,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            transition: 'border-color 0.2s, background 0.2s',
+          }}>
+            <span key={displayDamage} style={{ color: hasBonus ? (active ? '#4ade80' : '#4ade8066') : (active ? color : color + '55'), fontSize: 10, lineHeight: 1, animation: 'dmgPop 0.28s cubic-bezier(0.16,1,0.3,1) both' }}>
+              {displayDamage}
+            </span>
           </div>
-        )}
+          {lifted && enemyMod && <div style={{ fontSize: 4, color: enemyMod.color, lineHeight: 1, whiteSpace: 'nowrap', textShadow: '1px 1px 0 #000' }}>{enemyMod.text}</div>}
+          {conditionalBonus > 0 && lifted && <div style={{ fontSize: 4, color: '#facc1577', lineHeight: 1 }}>+{conditionalBonus}?</div>}
+        </div>
+        {/* Charges */}
+        {card.infinite
+          ? <div style={{ color: active ? color + '99' : color + '28', fontSize: 9, lineHeight: 1, transition: 'color 0.2s' }}>∞</div>
+          : (
+            <div style={{ display: 'flex', justifyContent: 'center', gap: 3, alignItems: 'center' }}>
+              {Array.from({ length: card.maxCharges ?? 3 }).map((_, i) => {
+                const filled = i < card.charges
+                return (
+                  <div key={i} style={{
+                    width: filled ? 7 : 5, height: filled ? 7 : 5,
+                    background: filled ? (isLow ? '#f04545' : color) : color + '18',
+                    border: `1px solid ${filled ? (isLow ? '#f04545cc' : color + 'cc') : color + '22'}`,
+                    boxShadow: filled && active ? `0 0 5px ${isLow ? '#f04545' : color}` : 'none',
+                    transition: 'width 0.15s, height 0.15s, background 0.15s',
+                    flexShrink: 0,
+                  }} />
+                )
+              })}
+            </div>
+          )
+        }
       </div>
     </div>
   )
 }
 
-// ── Card hand ─────────────────────────────────────────────────────
-export function CardHand({ hand, phase, onPlayCard }: Props) {
-  const canPlay  = phase === 'choose'
-  const allCards: HandSpell[] = [PUNCH_HAND, ...hand]
-  const n        = allCards.length
-  const center   = (n - 1) / 2
+// ── Damage helpers ────────────────────────────────────────────────
+function cardDisplayDamage(c: HandSpell, items: GameItem[], gold: number, hp: number, mhp: number) {
+  return calcCardDamage(c, items, hp, mhp, undefined, typeof c.charges === 'number' ? c.charges : undefined, gold)
+}
+function cardDamageVsEnemy(c: HandSpell, items: GameItem[], gold: number, hp: number, mhp: number, enemy: EnemyDef) {
+  return calcCardDamage(c, items, hp, mhp, enemy, typeof c.charges === 'number' ? c.charges : undefined, gold)
+}
+function enemyModLabel(c: HandSpell, enemy: EnemyDef) {
+  if (enemy.weaknesses?.includes(c.element))  return { text: '💥 ×1.5', color: '#4ade80' }
+  if (enemy.resistances?.includes(c.element)) return { text: '🛡 ×0.5', color: '#f87171' }
+  return null
+}
+function cardConditionalBonus(c: HandSpell, items: GameItem[]) {
+  if (c.infinite) return 0
+  const all = items.flatMap(i => i.effects)
+  const fh = all.filter(e => e.type === 'firstHitBonus').reduce((s, e) => s + (e as Extract<ItemEffect, { type: 'firstHitBonus' }>).bonus, 0)
+  const mo = all.filter(e => e.type === 'physicalMomentum' && c.element === 'physical').reduce((s, e) => s + (e as Extract<ItemEffect, { type: 'physicalMomentum' }>).bonus, 0)
+  const st = all.filter(e => e.type === 'elementStreak').reduce((s, e) => s + (e as Extract<ItemEffect, { type: 'elementStreak' }>).bonus, 0)
+  return fh + mo + st
+}
 
-  const [drag, setDrag] = useState<DragState | null>(null)
-  const [hover, setHover] = useState<number | null>(null)
+// ── Main ──────────────────────────────────────────────────────────
+export function CardHand({ hand, phase, onPlayCard, ownedItems, gold, playerHp, effectiveMaxHp, currentEnemy }: Props) {
+  const canPlay  = phase === 'choose' || phase === 'rest_charge'
+  const allCards = [PUNCH_HAND, ...hand]
 
-  const onPointerDown = useCallback((e: React.PointerEvent, card: HandSpell, idx: number) => {
+  // Embla handles horizontal scrolling
+  const [emblaRef, emblaApi] = useEmblaCarousel({
+    align: 'center',
+    containScroll: false,
+  })
+
+  const [selectedIdx, setSelectedIdx] = useState(0)
+  const [playDrag,    setPlayDrag]    = useState<PlayDrag | null>(null)
+  const slideRefs = useRef<(HTMLDivElement | null)[]>([])
+
+  // ── Scale tween (direct DOM, 60fps) ─────────────────────────────
+  const tweenScale = useCallback(() => {
+    if (!emblaApi) return
+    const n    = emblaApi.scrollSnapList().length
+    if (n < 2) return
+    const prog = emblaApi.scrollProgress()          // 0..1
+    const cur  = prog * (n - 1)                     // fractional snap index
+
+    slideRefs.current.forEach((el, idx) => {
+      if (!el) return
+      const dist  = Math.abs(idx - cur)
+      const scale = Math.max(0.78, 1 - dist * 0.18) // 1.0 → 0.82 → 0.78
+      el.style.transform       = `scale(${scale.toFixed(3)})`
+      el.style.transformOrigin = 'bottom center'
+    })
+  }, [emblaApi])
+
+  useEffect(() => {
+    if (!emblaApi) return
+    const onSelect = () => setSelectedIdx(emblaApi.selectedScrollSnap())
+    emblaApi.on('select', onSelect)
+    emblaApi.on('scroll', tweenScale)
+    emblaApi.on('reInit', tweenScale)
+    tweenScale()
+    return () => {
+      emblaApi.off('select', onSelect)
+      emblaApi.off('scroll', tweenScale)
+      emblaApi.off('reInit', tweenScale)
+    }
+  }, [emblaApi, tweenScale])
+
+  useEffect(() => {
+    setSelectedIdx(i => Math.min(i, allCards.length - 1))
+    // Re-run scale after card count changes (refs may shift)
+    requestAnimationFrame(tweenScale)
+  }, [allCards.length, tweenScale])
+
+  // ── Per-card pointer tracking (for vertical play gesture) ────────
+  // We track via window listeners so Embla and our handler coexist.
+  // On pointerdown: record start, don't capture (let Embla see it too).
+  // On first significant movement:
+  //   - if UP: steal capture → Embla loses the gesture → we show drag UI
+  //   - if horizontal: do nothing → Embla handles it normally
+  const pendingRef = useRef<{
+    pointerId: number; startX: number; startY: number
+    el: HTMLElement; card: HandSpell; decided: boolean
+  } | null>(null)
+
+  useEffect(() => {
+    const onMove = (e: PointerEvent) => {
+      const p = pendingRef.current
+      if (!p || e.pointerId !== p.pointerId) return
+
+      const dx = Math.abs(e.clientX - p.startX)
+      const dy = p.startY - e.clientY  // positive = dragging up
+
+      if (!p.decided) {
+        if (dy > 8 && dy > dx) {
+          p.decided = true
+          // Steal capture from Embla → we control this pointer now
+          p.el.setPointerCapture(p.pointerId)
+          setPlayDrag({ card: p.card, startY: p.startY, currentY: e.clientY })
+        } else if (dx > 8) {
+          p.decided = true
+          pendingRef.current = null // horizontal → Embla takes over
+        }
+      } else {
+        setPlayDrag(d => d ? { ...d, currentY: e.clientY } : null)
+      }
+    }
+
+    const onUp = (e: PointerEvent) => {
+      const p = pendingRef.current
+      if (!p || e.pointerId !== p.pointerId) return
+      if (p.decided) {
+        const dy = p.startY - e.clientY
+        if (dy > 60) onPlayCard(p.card)
+      }
+      pendingRef.current = null
+      setPlayDrag(null)
+    }
+
+    window.addEventListener('pointermove', onMove)
+    window.addEventListener('pointerup',   onUp)
+    return () => {
+      window.removeEventListener('pointermove', onMove)
+      window.removeEventListener('pointerup',   onUp)
+    }
+  }, [onPlayCard])
+
+  const onCardPointerDown = useCallback((e: React.PointerEvent, card: HandSpell, idx: number) => {
     if (!canPlay) return
-    e.stopPropagation()
-    ;(e.currentTarget as HTMLElement).setPointerCapture(e.pointerId)
-    setDrag({ card, idx, startY: e.clientY, x: e.clientX, y: e.clientY })
-    setHover(null)
-  }, [canPlay])
+    if (phase === 'rest_charge' && card.infinite) return
+    // Select the tapped card
+    setSelectedIdx(idx)
+    emblaApi?.scrollTo(idx)
+    // Start direction detection (don't capture yet)
+    pendingRef.current = {
+      pointerId: e.pointerId,
+      startX: e.clientX, startY: e.clientY,
+      el: e.currentTarget as HTMLElement,
+      card, decided: false,
+    }
+  }, [canPlay, phase, emblaApi])
 
-  const onPointerMove = useCallback((e: React.PointerEvent) => {
-    if (!drag) return
-    setDrag(d => d ? { ...d, x: e.clientX, y: e.clientY } : null)
-  }, [drag])
-
-  const onPointerUp = useCallback((e: React.PointerEvent) => {
-    if (!drag) return
-    if (drag.startY - e.clientY > 70) onPlayCard(drag.card)
-    setDrag(null)
-  }, [drag, onPlayCard])
-
-  const dragLift  = drag ? Math.max(0, Math.min(drag.startY - drag.y, 240)) : 0
-  const dragReady = dragLift > 70
-  const dragTheme = drag
-    ? (drag.card.infinite ? PUNCH_THEME : (ELEM_THEME[drag.card.element] ?? ELEM_THEME.physical))
-    : null
+  // ── Drag ghost visuals ───────────────────────────────────────────
+  const dragLift  = playDrag ? Math.max(0, Math.min(playDrag.startY - playDrag.currentY, 240)) : 0
+  const dragReady = dragLift > 60
+  const dragTheme = playDrag ? (playDrag.card.infinite ? PUNCH_THEME : (ELEM_THEME[playDrag.card.element] ?? ELEM_THEME.physical)) : null
   const dragColor = dragTheme?.glow ?? '#ffd700'
 
   return (
     <>
-      {/* ── Drag ghost ────────────────────────────────────────────── */}
-      {drag && (
-        <div style={{
-          position: 'fixed',
-          left: drag.x - 44,
-          top:  drag.y - dragLift - 64,
-          width: 88, height: 128,
-          zIndex: 200, pointerEvents: 'none',
-          transform: `rotate(-3deg) scale(${1 + dragLift * 0.001})`,
-          filter: `drop-shadow(0 16px 24px rgba(0,0,0,0.95)) drop-shadow(0 0 16px ${dragColor}66)`,
-        }}>
-          <CardFace card={drag.card} active lifted />
-        </div>
-      )}
-
-      {/* ── Drop zone ─────────────────────────────────────────────── */}
-      {drag && (
-        <>
-          <div style={{
-            position: 'absolute', top: 60, left: '15%', right: '15%', height: 2,
-            background: dragReady
-              ? `linear-gradient(90deg, transparent, ${dragColor}cc, transparent)`
-              : `linear-gradient(90deg, transparent, ${dragColor}22, transparent)`,
-            pointerEvents: 'none', zIndex: 99,
-            transition: 'background 0.15s',
-            boxShadow: dragReady ? `0 0 12px ${dragColor}88` : 'none',
-          }} />
-          <div style={{
-            position: 'fixed',
-            left: drag.x, top: drag.y - dragLift - 82,
-            transform: 'translateX(-50%)',
-            color: dragReady ? dragColor : '#ffffff44',
-            fontSize: 5, fontFamily: PX, letterSpacing: 2,
-            pointerEvents: 'none', zIndex: 201,
-            whiteSpace: 'nowrap',
-            textShadow: dragReady ? `0 0 8px ${dragColor}` : '1px 1px 0 #000',
-            transition: 'color 0.15s',
-          }}>
-            {dragReady ? '▲ ОТПУСТИ ▲' : '▲ ТЯНИ ВЫШЕ ▲'}
-          </div>
-        </>
-      )}
-
-      {/* ── Bottom panel (background provided by AppThree) ────────── */}
-      <div style={{
-        position: 'absolute', bottom: 0, left: 0, right: 0,
-        zIndex: 100,
-        paddingBottom: 8,
-        paddingTop: 14,
-      }}>
-
-        {/* Phase label */}
-        <div style={{ textAlign: 'center', height: 14, marginBottom: 6 }}>
-          {phase === 'choose' && (
-            <span style={{
-              color: '#ffffff28', fontSize: 5, letterSpacing: 3, fontFamily: PX,
-            }}>
-              — ВЫБЕРИ КАРТУ —
-            </span>
-          )}
-          {phase === 'waiting' && (
-            <span style={{
-              color: '#f0454555', fontSize: 5, letterSpacing: 3, fontFamily: PX,
-              animation: 'enemyPulse 0.8s ease-in-out infinite alternate',
-            }}>
-              — ВРАГ АТАКУЕТ —
-            </span>
-          )}
-        </div>
-
-        {/* Arc hand of cards */}
+      {/* ── Drag ghost ──────────────────────────────────────────── */}
+      {playDrag && (() => {
+        const cardEl = pendingRef.current?.el?.firstElementChild as HTMLElement | null
+        const rect   = cardEl?.getBoundingClientRect()
+        const gW = rect?.width  ?? 100
+        const gH = rect?.height ?? 170
+        const gL = rect?.left   ?? 0
+        return (
         <div
-          onPointerMove={onPointerMove}
-          onPointerUp={onPointerUp}
-          onPointerCancel={() => setDrag(null)}
+          className={s.ghost}
           style={{
-            display: 'flex',
-            justifyContent: 'center',
-            alignItems: 'flex-end',
-            padding: '0 96px',  // leave room for HP orb (left) + stats btn (right)
-            gap: 6,
-            minHeight: 148,
+            left:   gL,
+            top:    playDrag.currentY - dragLift - gH * 0.75,
+            width:  gW,
+            height: gH,
+            filter: `drop-shadow(0 16px 24px rgba(0,0,0,0.95)) drop-shadow(0 0 16px ${dragColor}66)`,
           }}
         >
-          {allCards.map((card, idx) => {
-            const offset   = idx - center
-            const rot      = offset * 4.5          // fan rotation
-            const ty       = offset * offset * 3   // arc curve (edges rise)
-            const isDrag   = drag?.idx === idx
-            const isHover  = hover === idx && !drag
-            const zIdx     = isDrag ? 0 : (isHover ? n + 2 : n - Math.abs(Math.round(offset)))
+          <CardFace
+            card={playDrag.card} active lifted
+            displayDamage={cardDamageVsEnemy(playDrag.card, ownedItems, gold, playerHp, effectiveMaxHp, currentEnemy)}
+            conditionalBonus={cardConditionalBonus(playDrag.card, ownedItems)}
+            enemyMod={enemyModLabel(playDrag.card, currentEnemy)}
+          />
+        </div>
+        )
+      })()}
 
+      {/* ── Drop zone glow ──────────────────────────────────────── */}
+      {playDrag && (
+        <div
+          className={s.dropZone}
+          style={{
+            background: dragReady
+              ? `linear-gradient(90deg,transparent,${dragColor}cc,transparent)`
+              : `linear-gradient(90deg,transparent,${dragColor}22,transparent)`,
+            boxShadow: dragReady ? `0 0 16px ${dragColor}88` : 'none',
+          }}
+        />
+      )}
+
+      <div ref={emblaRef} className={s.viewport}>
+        <div className={s.container}>
+          {allCards.map((card, idx) => {
+            const isSel  = selectedIdx === idx
+            const isDrag = playDrag?.card.instanceId === card.instanceId
             return (
               <div
                 key={`${card.instanceId}-${idx}`}
-                style={{
-                  flexShrink: 0, width: 88, height: 128,
-                  transformOrigin: 'bottom center',
-                  transform: isDrag
-                    ? `rotate(${rot}deg) translateY(${ty}px) scale(0.85)`
-                    : isHover
-                      ? `rotate(${rot * 0.5}deg) translateY(${ty - 18}px) scale(1.06)`
-                      : `rotate(${rot}deg) translateY(${ty}px) scale(1)`,
-                  opacity:    isDrag ? 0.18 : 1,
-                  zIndex:     zIdx,
-                  transition: isDrag ? 'none' : 'transform 0.18s cubic-bezier(0.16,1,0.3,1), opacity 0.15s',
-                  cursor:     canPlay ? 'grab' : 'default',
-                  touchAction: 'none',
-                }}
-                onPointerDown={e => onPointerDown(e, card, idx)}
-                onPointerEnter={() => canPlay && !drag && setHover(idx)}
-                onPointerLeave={() => setHover(null)}
+                ref={el => { slideRefs.current[idx] = el }}
+                className={[s.slide, isDrag ? s['slide--drag'] : '', canPlay ? s['slide--play'] : ''].filter(Boolean).join(' ')}
+                onPointerDown={e => onCardPointerDown(e, card, idx)}
               >
-                <CardFace card={card} active={canPlay && !isDrag} />
+                <CardFace
+                  card={card}
+                  active={canPlay && !isDrag && isSel}
+                  displayDamage={cardDisplayDamage(card, ownedItems, gold, playerHp, effectiveMaxHp)}
+                />
               </div>
             )
           })}
         </div>
       </div>
-
-      <style>{`
-        @keyframes enemyPulse {
-          from { opacity: 0.4; }
-          to   { opacity: 0.9; }
-        }
-      `}</style>
     </>
   )
 }

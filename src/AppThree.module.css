@@ -1,0 +1,266 @@
+.root {
+  width: 100dvw;
+  height: 100dvh;
+  background: #000;
+  display: flex;
+  justify-content: center;
+  align-items: stretch;
+}
+
+.container {
+  position: relative;
+  width: 100%;
+  max-width: 480px;
+  height: 100%;
+  overflow: hidden;
+  --hud-h: 25svh;
+}
+
+.canvas {
+  width: 100%;
+  height: 100%;
+}
+
+/* ── Gameplay frame ── */
+.frame {
+  position: absolute;
+  top: 46px;
+  left: 0;
+  right: 0;
+  bottom: var(--hud-h);
+  pointer-events: none;
+  z-index: 20;
+  box-shadow:
+    inset 0 0 80px rgba(0, 0, 0, 0.8),
+    inset 6px 0 0 #100d22,
+    inset -6px 0 0 #100d22;
+}
+
+/* Static corner ornaments */
+.frameCornerTL,
+.frameCornerTR,
+.frameCornerBL,
+.frameCornerBR {
+  position: absolute;
+  width: 22px;
+  height: 22px;
+  pointer-events: none;
+  z-index: 51;
+}
+.frameCornerTL { top: 46px; left: 0;  border-top: 3px solid #c8a80077; border-left:  3px solid #c8a80077; }
+.frameCornerTR { top: 46px; right: 0; border-top: 3px solid #c8a80077; border-right: 3px solid #c8a80077; }
+.frameCornerBL { bottom: var(--hud-h); left: 0;  border-bottom: 3px solid #c8a80077; border-left:  3px solid #c8a80077; }
+.frameCornerBR { bottom: var(--hud-h); right: 0; border-bottom: 3px solid #c8a80077; border-right: 3px solid #c8a80077; }
+
+/* ── Game frame overlay ── */
+.gameFrame {
+  position: absolute;
+  top: calc(46px - 5px);
+  left: -10px;
+  right: -10px;
+  bottom: calc(var(--hud-h) - 10px);
+  width: calc(100% + 20px);
+  height: calc(100% - 46px - var(--hud-h) + 12px);
+  object-fit: fill;
+  image-rendering: pixelated;
+  pointer-events: none;
+  z-index: 22;
+}
+
+.bottomPanel {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: var(--hud-h);
+  background-color: #080a0c;
+  background-image: radial-gradient(circle, #111416 1px, transparent 1px);
+  background-size: 14px 14px;
+  border-top: 1px solid #c8a80033;
+  box-shadow: 0 -2px 8px #000000cc, inset 0 1px 0 #ffffff05;
+  pointer-events: none;
+  z-index: 98;
+}
+
+.cardHandSlot {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: var(--hud-h);
+  z-index: 101;
+  overflow: visible;
+}
+
+/* ── Enemy label ── */
+.enemyLabel {
+  position: absolute;
+  top: 42%;
+  left: 50%;
+  transform: translate(-50%, -100%);
+  pointer-events: none;
+  z-index: 25;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+  transition: filter 0.3s;
+}
+
+.enemyNameRow {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.enemyElemIcon {
+  font-size: 16px;
+  filter: drop-shadow(0 1px 3px #000);
+}
+
+.enemyHpBox {
+  background: #000000cc;
+  padding: 3px 12px;
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+}
+
+/* ── Main menu ── */
+.menu {
+  position: absolute;
+  inset: 0;
+  z-index: 200;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(180deg, #03010a 0%, #0a0518 50%, #07050f 100%);
+}
+
+.menuVignette {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: radial-gradient(ellipse at 50% 50%, transparent 40%, #000000bb 100%);
+}
+
+.menuTitle {
+  position: relative;
+  text-align: center;
+  margin-bottom: 60px;
+}
+
+.menuSubtitle {
+  font-size: 11px;
+  letter-spacing: 8px;
+  color: #c8a80044;
+  margin-bottom: 8px;
+}
+
+.menuHeading {
+  font-size: 28px;
+  letter-spacing: 4px;
+  color: #c8a800;
+  text-shadow: 0 0 30px #c8a80066, 0 0 60px #c8a80033;
+}
+
+.menuDivider {
+  margin-top: 10px;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, #c8a80055, transparent);
+}
+
+.menuDots {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 48px;
+}
+
+.menuStartBtn {
+  background: none;
+  border: 2px solid #c8a80066;
+  cursor: pointer;
+  padding: 12px 40px;
+  color: #c8a800;
+  font-size: 8px;
+  letter-spacing: 4px;
+  transition: border-color 0.2s, color 0.2s, box-shadow 0.2s;
+  box-shadow: 0 0 12px #c8a80022;
+}
+
+/* ── Game over ── */
+.gameOver {
+  position: absolute;
+  inset: 0;
+  z-index: 200;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(180deg, #0a0004 0%, #1a000a 50%, #0a0004 100%);
+}
+
+.gameOverVignette {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: radial-gradient(ellipse at 50% 50%, transparent 30%, #000000cc 100%);
+}
+
+.gameOverTitle {
+  position: relative;
+  text-align: center;
+  margin-bottom: 40px;
+}
+
+.gameOverHeading {
+  font-size: 30px;
+  letter-spacing: 6px;
+  color: #f04545;
+  text-shadow: 0 0 30px #f0454588, 0 0 60px #f0454533;
+}
+
+.gameOverDivider {
+  margin-top: 10px;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, #f0454544, transparent);
+}
+
+.gameOverStats {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 48px;
+  text-align: center;
+}
+
+.gameOverStatRow {
+  display: flex;
+  justify-content: space-between;
+  gap: 32px;
+}
+
+.gameOverStatLabel {
+  color: #ffffff33;
+  font-size: 5px;
+  letter-spacing: 2px;
+}
+
+.gameOverStatVal {
+  color: #ffffff88;
+  font-size: 5px;
+}
+
+.gameOverBtn {
+  background: none;
+  border: 2px solid #f0454566;
+  cursor: pointer;
+  padding: 12px 40px;
+  color: #f04545;
+  font-size: 8px;
+  letter-spacing: 4px;
+  transition: border-color 0.2s, color 0.2s, box-shadow 0.2s;
+  box-shadow: 0 0 12px #f0454522;
+}

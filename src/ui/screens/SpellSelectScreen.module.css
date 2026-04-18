@@ -1,0 +1,154 @@
+.root {
+  position: absolute;
+  inset: 0;
+  background: rgba(2, 2, 8, 0.97);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 20px;
+  z-index: 70;
+  animation: overlayIn 0.25s ease forwards;
+}
+
+.title {
+  text-align: center;
+}
+
+.titleMain {
+  color: #ffd700;
+  font-size: 10px;
+  letter-spacing: 2px;
+  margin-bottom: 6px;
+}
+
+.titleSub {
+  color: #888;
+  font-size: 5px;
+  letter-spacing: 1px;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(3, 80px);
+  gap: 10px;
+  padding: 0 16px;
+}
+
+.card {
+  width: 80px;
+  height: 112px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  position: relative;
+  padding: 0;
+  transition: box-shadow 0.12s, border-color 0.12s, opacity 0.12s;
+}
+
+.card--blocked {
+  opacity: 0.35;
+  cursor: default;
+}
+
+.card--selectable {
+  cursor: pointer;
+}
+
+.cardAccent {
+  height: 3px;
+  flex-shrink: 0;
+}
+
+.cardHeader {
+  padding: 3px 5px 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-shrink: 0;
+}
+
+.cardElemLabel {
+  font-size: 4px;
+  letter-spacing: 0;
+}
+
+.cardElemIcon {
+  font-size: 9px;
+}
+
+.cardIconArea {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.cardImg {
+  width: 48px;
+  height: 48px;
+  image-rendering: pixelated;
+  object-fit: contain;
+  transition: filter 0.12s;
+}
+
+.cardEmoji {
+  font-size: 36px;
+  line-height: 1;
+}
+
+.cardFooter {
+  background: #00000055;
+  padding: 3px 5px 5px;
+  flex-shrink: 0;
+}
+
+.cardName {
+  font-size: 4px;
+  line-height: 1.4;
+  overflow: hidden;
+  text-align: center;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.cardDmg {
+  font-size: 9px;
+  text-align: center;
+  margin-top: 2px;
+}
+
+.checkmark {
+  position: absolute;
+  top: 5px;
+  left: 5px;
+  width: 10px;
+  height: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 6px;
+  color: #000;
+}
+
+.counter {
+  color: #666;
+  font-size: 5px;
+  letter-spacing: 1px;
+}
+
+.counterRem {
+  color: #ffd70088;
+}
+
+.confirmBtn {
+  padding: 10px 32px;
+  font-size: 8px;
+  letter-spacing: 2px;
+  transition: all 0.15s;
+  cursor: pointer;
+}
+
+.confirmBtn--disabled {
+  cursor: default;
+}

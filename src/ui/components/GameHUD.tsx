@@ -1,75 +1,90 @@
 import { BIOME_EVERY, PX } from '../../constants'
+import s from './GameHUD.module.css'
 
 interface Props {
-  gold:       number
-  stepCount:  number
-  hitStreak:  number
+  gold:           number
+  stepCount:      number
+  hitStreak:      number
+  playerHp:       number
+  effectiveMaxHp: number
+  onStats:        () => void
 }
 
-export function GameHUD({ gold, stepCount, hitStreak }: Props) {
+export function GameHUD({ gold, stepCount, hitStreak, playerHp, effectiveMaxHp, onStats }: Props) {
   const stepsLeft = BIOME_EVERY - (stepCount % BIOME_EVERY)
+  const pct       = Math.max(0, Math.min(1, playerHp / effectiveMaxHp))
+  const hpColor   = pct > 0.5 ? '#3af3a0' : pct > 0.25 ? '#f0c040' : '#f04545'
+  const isLow     = pct <= 0.25
 
   return (
-    <div style={{
-      position: 'absolute', top: 0, left: 0, right: 0,
-      height: 42, zIndex: 100,
-      // Dot-grid texture over dark background
-      backgroundColor: '#07050f',
-      backgroundImage: 'radial-gradient(circle, #141228 1px, transparent 1px)',
-      backgroundSize: '14px 14px',
-      // Bottom border: thick line + gold accent line
-      borderBottom: '3px solid #2a2448',
-      boxShadow: 'inset 0 -1px 0 #c8a80033, inset 0 -4px 0 #100d22',
-      display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-      padding: '0 14px',
-      pointerEvents: 'none',
-      fontFamily: PX,
-    }}>
+    <div className={s.bar} style={{ fontFamily: PX }}>
 
       {/* Gold */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-        <span style={{ fontSize: 14 }}>💰</span>
-        <span style={{
-          color: '#ffd700', fontSize: 9,
-          textShadow: '0 0 8px #ffd70066',
-        }}>{gold}</span>
+      <div className={s.gold}>
+        <div className={s.goldCoin} />
+        <span className={s.goldVal}>{gold}</span>
       </div>
 
-      {/* Streak badge (center, only when active) */}
-      {hitStreak >= 3 ? (
-        <div style={{
-          display: 'flex', alignItems: 'center', gap: 4,
-          background: '#f0c04012',
-          border: '1px solid #f0c04055',
-          boxShadow: 'inset 0 0 8px #f0c04011',
-          padding: '2px 8px',
-        }}>
-          <span style={{ fontSize: 11 }}>🔥</span>
-          <span style={{ color: '#f0c040', fontSize: 7 }}>×{hitStreak}</span>
+      <div className={s.sep} />
+
+      {/* HP */}
+      <div className={s.hp}>
+        <span
+          className={s.hpHeart}
+          style={{
+            filter: isLow ? 'drop-shadow(0 0 5px #f04545)' : 'none',
+            animation: isLow ? `hpPulse 1s ease-in-out infinite alternate` : 'none',
+          }}
+        >❤</span>
+        <div className={s.hpBlock}>
+          <div className={s.hpNumRow}>
+            <span className={s.hpCurrent} style={{ color: hpColor }}>{playerHp}</span>
+            <span className={s.hpMax}>/{effectiveMaxHp}</span>
+          </div>
+          <div className={s.hpTrack}>
+            <div
+              className={s.hpFill}
+              style={{
+                width: `${pct * 100}%`,
+                background: `linear-gradient(90deg, ${hpColor}88, ${hpColor})`,
+                boxShadow: isLow ? `0 0 6px ${hpColor}` : `0 0 4px ${hpColor}66`,
+              }}
+            />
+            {[0.25, 0.5, 0.75].map(t => (
+              <div key={t} className={s.hpTick} style={{ left: `${t * 100}%` }} />
+            ))}
+          </div>
         </div>
-      ) : (
-        /* Subtle center decoration when no streak */
-        <div style={{
-          display: 'flex', gap: 5, alignItems: 'center',
-        }}>
-          {[0, 1, 2].map(i => (
-            <div key={i} style={{
-              width: i === 1 ? 6 : 4,
-              height: i === 1 ? 6 : 4,
-              background: i === 1 ? '#2a2448' : '#1a1630',
-            }} />
-          ))}
+      </div>
+
+      <div className={s.spacer} />
+
+      {hitStreak >= 3 && (
+        <div className={s.streak}>
+          <span className={s.streakIcon}>🔥</span>
+          <span className={s.streakVal}>×{hitStreak}</span>
         </div>
       )}
 
+      <div className={s.spacer} />
+
+      {/* Stats button */}
+      <button className={s.statsBtn} onClick={onStats}>
+        {[['#1a1a1a','#2e2e2e','#1a1a1a'], ['#2e2e2e','#c8a800','#2e2e2e'], ['#1a1a1a','#2e2e2e','#1a1a1a']].map((row, ri) => (
+          <div key={ri} className={s.statsBtnRow}>
+            {row.map((c, i) => <div key={i} className={s.statsBtnPx} style={{ background: c }} />)}
+          </div>
+        ))}
+      </button>
+
+      <div className={s.sep} />
+
       {/* Steps to next biome */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-        <span style={{ fontSize: 11 }}>🌍</span>
-        <span style={{
-          color: '#7dd3fc', fontSize: 7,
-          textShadow: '0 0 6px #7dd3fc44',
-        }}>{stepsLeft}</span>
+      <div className={s.steps}>
+        <span className={s.stepsIcon}>⚑</span>
+        <span className={s.stepsVal}>{stepsLeft}</span>
       </div>
+
     </div>
   )
 }

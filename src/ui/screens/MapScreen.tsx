@@ -1,4 +1,5 @@
 import React, { useRef } from 'react'
+import s from './MapScreen.module.css'
 import { useGameStore } from '@store/gameStore'
 import { useParallax } from '@scene/useParallax'
 import type { ParallaxScene } from '@scene/ParallaxScene'
@@ -24,25 +25,10 @@ export function MapScreen() {
   const nodes = Object.values(map.nodes).filter(n => n.type !== 'start')
 
   return (
-    <div style={{ position: 'relative', width: '100%', height: '100%' }}>
-      {/* PixiJS фон */}
-      <canvas
-        ref={canvasRef}
-        style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }}
-      />
-
-      {/* UI оверлей с картой */}
-      <div style={{
-        position: 'absolute', inset: 0,
-        display: 'flex', flexDirection: 'column',
-        justifyContent: 'flex-end', padding: '24px',
-        background: 'linear-gradient(to top, rgba(0,0,0,0.6) 0%, transparent 60%)',
-      }}>
-        <svg
-          viewBox="0 0 100 100"
-          preserveAspectRatio="none"
-          style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', pointerEvents: 'none' }}
-        >
+    <div className={s.root}>
+      <canvas ref={canvasRef} className={s.canvas} />
+      <div className={s.overlay}>
+        <svg viewBox="0 0 100 100" preserveAspectRatio="none" className={s.svg}>
           {/* Линии связей между узлами */}
           {nodes.map(node =>
             node.nextIds.map(nextId => {

@@ -23,6 +23,22 @@ export function toHandSpell(spell: Spell): HandSpell {
   }
 }
 
+const SPELL_ICON_MAP: Record<string, string> = {
+  punch:        'punch',
+  fireball:     'fire',
+  dark_essence: 'dark_essence',
+  staff:        'staff',
+  water_wave:   'water',
+  lightning:    'light',
+  earth_slam:   'earth',
+}
+
+/** Возвращает путь к PNG-иконке заклинания или null если нет */
+export function spellIconSrc(id: string): string | null {
+  const file = SPELL_ICON_MAP[id]
+  return file ? `/assets/spells/${file}.png` : null
+}
+
 /** Базовая карта — всегда в руке, не расходуется, предметы на неё НЕ влияют */
 export const PUNCH_SPELL: Spell = {
   id: 'punch',
